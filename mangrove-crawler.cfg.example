@@ -1,0 +1,13 @@
+[mediawiki]
+db_host=localhost
+db_user=root
+db_passwd=*******
+db_name=wikilom
+work_dir=/opt/Wikipedia
+
+[youtube]
+db_host=localhost
+db_user=root
+db_passwd=*******
+db_name=youtubelom
+developer_key=****
