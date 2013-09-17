@@ -1,4 +1,6 @@
-[mediawiki]
+[wikipedia_nl]
+wiki=nlwiki
+download_path=http://dumps.wikimedia.org/nlwiki/latest/
 db_host=localhost
 db_user=root
 db_passwd=*******

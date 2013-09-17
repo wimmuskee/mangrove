@@ -42,6 +42,12 @@ if args.source:
 		config = common.getConfig(configfile,source)
 		Harvester = harvest_channel.HarvestChannel(config)
 		Harvester.harvest(part)
+	elif source == "wikikids":
+		print "Crawling Wikikids database"
+		from mangrove_crawler.interfaces.mediawiki import harvest_database
+		config = common.getConfig(configfile,source)
+		Harvester = harvest_database.HarvestDatabase(config)
+		Harvester.harvest()
 	else:
 		parser.error('Invalid source: ' + source)
 else:

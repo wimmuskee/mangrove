@@ -57,3 +57,11 @@ def bz2Unpack(source,dest):
 	output = open(dest,'wb')
 	output.write(f.read())
 	output.close()
+
+
+def checkLocal():
+	from os import path, getcwd
+	if path.isdir( getcwd() + "/share" ):
+		return true
+	else:
+		return false
