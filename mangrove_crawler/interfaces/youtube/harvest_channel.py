@@ -14,11 +14,6 @@ class HarvestChannel:
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
 
 
-	def info(self,username):
-		channel = common.getChannelInfo(self.config["developer_key"],username)
-		print dumps(channel, indent=4)
-
-
 	def harvest(self,channel=""):
 		c = self.DB.cursor()
 
@@ -27,8 +22,13 @@ class HarvestChannel:
 			query = "SELECT youtube_id,updated FROM channels WHERE username = %s"
 			c.execute(query, (channel))
 			row = c.fetchone()
-			self.getPage(row[0],row[1])
-			self.updateChannelTimestamp(row[0])
+			if row:
+				self.getPage(row[0],row[1])
+				self.updateChannelTimestamp(row[0])
+			else:
+				print "Channel: " + channel + " not found. Add the following:"
+				info = common.getChannelInfo(self.config["developer_key"],channel)
+				print dumps(info, indent=4)
 		else:
 			print "Harvesting all channels"
 			query = "SELECT youtube_id,updated FROM channels;"
