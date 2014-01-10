@@ -19,11 +19,11 @@ class HarvestChannel:
 
 		if channel:
 			print "Harvesting " + channel
-			query = "SELECT youtube_id,updated FROM channels WHERE username = %s"
+			query = "SELECT youtube_id,updated,setspec FROM channels WHERE username = %s"
 			c.execute(query, (channel))
 			row = c.fetchone()
 			if row:
-				self.getPage(row[0],row[1])
+				self.getPage(row[0],row[1],row[2])
 				self.updateChannelTimestamp(row[0])
 			else:
 				print "Channel: " + channel + " not found. Add the following:"
@@ -31,26 +31,27 @@ class HarvestChannel:
 				print dumps(info, indent=4)
 		else:
 			print "Harvesting all channels"
-			query = "SELECT youtube_id,updated FROM channels;"
+			query = "SELECT youtube_id,updated,setspec FROM channels;"
 			c.execute(query)
 			for row in c.fetchall():
-				self.getPage(row[0],row[1],"")
+				self.getPage(row[0],row[1],row[2],"")
 				self.updateChannelTimestamp(row[0])
 
 
-	def getPage(self,channel_id,fromts,token=""):
+	def getPage(self,channel_id,fromts,setspec,token=""):
 		result = common.getChannelPage(self.config["developer_key"],channel_id,fromts,token)
 		
 		for vid in result["videos"].keys():
 			print dumps(result["videos"][vid],4)
-			self.storeResult(result["videos"][vid])
+			print(setspec)
+			self.storeResult(result["videos"][vid],setspec)
 		
 		if result["meta"]["token"]:
 			sleep(5)
-			self.getPage(channel_id,fromts,result["meta"]["token"])
+			self.getPage(channel_id,fromts,setspec,result["meta"]["token"])
 
 
-	def storeResult(self,video):
+	def storeResult(self,video,setspec):
 		timestamp = int(time())
 		c = self.DB.cursor()
 		
@@ -68,7 +69,7 @@ class HarvestChannel:
 			identifier = uuid4()
 			query = "INSERT INTO videos (identifier, youtube_id, title, description, duration, license, thumbnail, embed, publishdate, channel_id) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
 			c.execute(query, (identifier,video["youtube_id"],video["title"],video["description"],video["duration"],video["license"],video["thumbnail"],video["embed"],video["publishdate"],video["channel_id"]) )
-			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,"ftc",timestamp))
+			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,setspec,timestamp))
 
 
 	def updateChannelTimestamp(self,channel_id):
