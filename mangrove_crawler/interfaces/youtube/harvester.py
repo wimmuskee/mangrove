@@ -8,7 +8,7 @@ from uuid import uuid4
 from datetime import datetime
 import pytz
 
-class HarvestChannel:
+class Harvester:
 	def __init__(self,config):
 		self.config = config
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)

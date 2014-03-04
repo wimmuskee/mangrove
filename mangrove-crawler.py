@@ -11,6 +11,7 @@ License: GPL-3
 
 import argparse
 import os.path
+from sys import exit
 from mangrove_crawler import common
 
 parser = argparse.ArgumentParser(description='Crawler for the Source to LOM project.')
@@ -36,19 +37,22 @@ if args.source:
 	else:
 		part = ""
 
-	if source == "youtube":
-		print "Crawling Youtube channels"
-		from mangrove_crawler.interfaces.youtube import harvest_channel
+	""" get config for source """
+	try:
 		config = common.getConfig(configfile,source)
-		Harvester = harvest_channel.HarvestChannel(config)
-		Harvester.harvest(part)
-	elif source == "wikikids":
-		print "Crawling Wikikids database"
-		from mangrove_crawler.interfaces.mediawiki import harvest_database
-		config = common.getConfig(configfile,source)
-		Harvester = harvest_database.HarvestDatabase(config)
-		Harvester.harvest()
-	else:
+	except:
 		parser.error('Invalid source: ' + source)
+
+	""" load and start harvester """
+	try:
+		harvester = common.import_from('mangrove_crawler.interfaces.' + config['module'], 'harvester')
+		Harvester = harvester.Harvester(config)
+	except:
+		print("Cannot load module for source: " + source)
+		exit()
+
+	""" starting harvest process """
+	print "Harvesting: " + source
+	Harvester.harvest(part)
 else:
 	parser.error('Input a valid source')

@@ -14,7 +14,7 @@ from nltk import tokenize
 from time import time
 from uuid import uuid4
 
-class HarvestDatabase:
+class Harvester:
 	def __init__(self,config):
 		self.config = config
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
@@ -22,7 +22,7 @@ class HarvestDatabase:
 		self.re_docid = re.compile(r'id="([0-9]*?)"')
 
 
-	def harvest(self):
+	def harvest(self,part=""):
 		""" Getting the data in 4 steps, parsing is distributed in parseExtracts """
 		self.getData()
 		self.importData()

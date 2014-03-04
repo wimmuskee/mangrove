@@ -1,4 +1,5 @@
 [wikipedia_nl]
+module=mediawiki
 wiki=nlwiki
 download_path=http://dumps.wikimedia.org/nlwiki/latest/
 db_host=localhost
@@ -8,6 +9,7 @@ db_name=wikilom
 work_dir=/opt/Wikipedia
 
 [youtube]
+module=youtube
 db_host=localhost
 db_user=root
 db_passwd=*******

@@ -14,17 +14,25 @@ def getConfig(configfile,section):
 	Config = ConfigParser.ConfigParser()
 	Config.read(configfile)
 
-	dict1 = {}
+	config_options = {}
 	options = Config.options(section)
 	for option in options:
 		try:
-			dict1[option] = Config.get(section, option)
-			if dict1[option] == -1:
+			config_options[option] = Config.get(section, option)
+			if config_options[option] == -1:
 				DebugPrint("skip: %s" % option)
 		except:
 			print("exception on %s!" % option)
-			dict1[option] = None
-	return dict1
+			config_options[option] = None
+
+	return config_options
+
+
+""" Dynamically import a method """
+def import_from(module, name):
+	import importlib
+	module = __import__(module, fromlist=[name])
+	return getattr(module, name)
 
 
 def downloadFile(source,dest):
