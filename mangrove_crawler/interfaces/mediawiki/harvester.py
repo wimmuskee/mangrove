@@ -6,8 +6,8 @@ from mangrove_crawler.common import downloadFile, removeFile, gzUnpack, bz2Unpac
 import MySQLdb
 import re
 from bz2 import BZ2File
-from subprocess import Popen, PIPE
-from os import walk
+from subprocess import Popen, PIPE, call
+from os import walk, path
 from readability_score.calculators import fleschkincaid
 from collections import defaultdict
 from nltk import tokenize
@@ -25,9 +25,9 @@ class Harvester:
 	def harvest(self,part=""):
 		""" Getting the data in 4 steps, parsing is distributed in parseExtracts """
 		self.getData()
-		self.importData()
-		self.preprocessText()
-		self.parseExtracts()
+		#self.importData()
+		#self.preprocessText()
+		#self.parseExtracts()
 		# delete extract dir
 
 
@@ -42,7 +42,10 @@ class Harvester:
 		print "Downloading page xml file"
 		downloadFile(src_prefix + "latest-pages-articles.xml.bz2", self.config["dest_prefix"] + "pages-articles.xml.bz2")
 		print "Unpacking page xml file"
-		bz2Unpack(self.config["dest_prefix"] + "pages-articles.xml.bz2",  self.config["dest_prefix"] + "pages-articles.xml" )
+		""" unpacking at shell level, wikipedia file too large for bz2 module """
+		bzfile = self.config["dest_prefix"] + "pages-articles.xml.bz2"
+		if path.isfile(bzfile):
+			call("bunzip2 " + bzfile, shell=True)
 
 		print "Downloading categories sql file"
 		downloadFile(src_prefix + "latest-categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql.gz")
