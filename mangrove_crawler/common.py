@@ -50,6 +50,12 @@ def removeFile(filename):
 	except OSError:
 		pass
 
+def removeDir(dirname):
+	from shutil import rmtree
+	try:
+		rmtree(dirname)
+	except:
+		pass
 
 def gzUnpack(source,dest):
 	import gzip

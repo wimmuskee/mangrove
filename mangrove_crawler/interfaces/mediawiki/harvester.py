@@ -8,7 +8,7 @@ import MySQLdb.cursors
 import re
 from bz2 import BZ2File
 from subprocess import Popen, PIPE, call
-from os import walk, path
+from os import walk, path, listdir
 from readability_score.calculators import fleschkincaid
 from collections import defaultdict
 from nltk import tokenize
@@ -35,7 +35,7 @@ class Harvester:
 		self.importData()
 		self.preprocessText()
 		self.parseExtracts()
-		# delete extract dir
+		self.cleanup()
 
 
 	def getData(self):
@@ -204,6 +204,19 @@ class Harvester:
 			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,self.config["setspec"],timestamp))
 
 		c.close()
+
+
+	def cleanup(self):
+		file_prefix = self.config["download_path"] + self.config["wiki"] + "-"
+		extractdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
+
+		print("Cleaning up workdir files")
+		removeFile(file_prefix + "categorylinks.sql")
+		removeFile(file_prefix + "page.sql")
+		removeFile(file_prefix + "pages-articles.xml")
+
+		for subdir in listdir(extractdir):
+			removeDir(extractdir + "/" + subdir)
 
 
 	""" Debug """
