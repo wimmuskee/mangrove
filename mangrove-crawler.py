@@ -20,14 +20,12 @@ parser.add_argument('-p', '--part', nargs=1, help='Identifiable subset of provid
 parser.add_argument('-c', '--config', nargs=1, help='Config file', metavar='configfile', dest='configfile')
 
 args = parser.parse_args()
+configfile = "mangrove-crawler.cfg"
 
 if args.configfile:
 	configfile = args.configfile[0]
 	if not os.path.isfile(configfile):
 		parser.error('Invalid config file: ' + configfile)
-else:
-	parser.error('You have to specify a config file')
-
 
 if args.source:
 	source = args.source[0]
