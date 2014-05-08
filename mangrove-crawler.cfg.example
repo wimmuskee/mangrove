@@ -1,6 +1,7 @@
 [wikipedia_nl]
 module=mediawiki
 wiki=nlwiki
+setspec=wikipedia_nl
 download_path=http://dumps.wikimedia.org/nlwiki/latest/
 db_host=localhost
 db_user=root

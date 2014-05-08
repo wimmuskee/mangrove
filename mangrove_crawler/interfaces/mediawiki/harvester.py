@@ -4,6 +4,7 @@ import common
 from mangrove_crawler.textprocessing import getStopwords
 from mangrove_crawler.common import downloadFile, removeFile, gzUnpack, bz2Unpack, checkLocal
 import MySQLdb
+import MySQLdb.cursors
 import re
 from bz2 import BZ2File
 from subprocess import Popen, PIPE, call
@@ -17,17 +18,23 @@ from uuid import uuid4
 class Harvester:
 	def __init__(self,config):
 		self.config = config
-		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
+		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
 		self.config["dest_prefix"] = config["work_dir"] + "/" + config["wiki"] + "-"
 		self.re_docid = re.compile(r'id="([0-9]*?)"')
+		self.re_htmltags = re.compile('<[^<]+?>')
+
+		if checkLocal:
+			self.share_prefix = "share/interfaces/mediawiki/"
+		else:
+			self.share_prefix = "/usr/share/mangrove/interfaces/mediawiki/"
 
 
 	def harvest(self,part=""):
 		""" Getting the data in 4 steps, parsing is distributed in parseExtracts """
 		self.getData()
-		#self.importData()
-		#self.preprocessText()
-		#self.parseExtracts()
+		self.importData()
+		self.preprocessText()
+		self.parseExtracts()
 		# delete extract dir
 
 
@@ -62,13 +69,8 @@ class Harvester:
 		print "Importing data in database"
 		sqlfiles = [self.config["dest_prefix"] + "page.sql", self.config["dest_prefix"] + "categorylinks.sql"]
 		
-		if checkLocal:
-			db_prefix = "share/interfaces/mediawiki/"
-		else:
-			db_prefix = "/usr/share/mangrove/interfaces/mediawiki/"
-
-		sqlfiles.extend([db_prefix + "importCategories.sql", db_prefix + "importCategoryRelations.sql"])
-		sqlfiles.extend([db_prefix + self.config["wiki"] + "_removeSmallPages.sql", db_prefix + self.config["wiki"] + "_selectTitles.sql", db_prefix + self.config["wiki"] + "_renameTables.sql"])
+		sqlfiles.extend([self.share_prefix + "importCategories.sql", self.share_prefix + "importCategoryRelations.sql"])
+		sqlfiles.extend([self.share_prefix + self.config["wiki"] + "_removeSmallPages.sql", self.share_prefix + self.config["wiki"] + "_selectTitles.sql", self.share_prefix + self.config["wiki"] + "_renameTables.sql"])
 
 		for sql in sqlfiles:
 			process = Popen('mysql %s -u%s -p%s' % (self.config["db_name"], self.config["db_user"], self.config["db_passwd"]), stdout=PIPE, stdin=PIPE, shell=True)
@@ -77,8 +79,10 @@ class Harvester:
 
 	def preprocessText(self):
 		print "Preprocessing text"
-		process = Popen('WikiExtractor.py -c -o %s' % (self.config["work_dir"] + "/extract-" + self.config["wiki"]), stdout=PIPE, stdin=PIPE, shell=True)
-		output = process.communicate(file(self.config["dest_prefix"] + "pages-articles.xml").read())
+		outputdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
+		inputfile = self.config["dest_prefix"] + "pages-articles.xml"
+		script = self.share_prefix + "WikiExtractorWrapper.sh"
+		call([script, inputfile, outputdir])
 
 
 	def parseExtracts(self):
@@ -111,6 +115,8 @@ class Harvester:
 			else:
 				article += "\n" + line
 
+		c.close()
+
 
 	""" Basically gets all data with some helper functions """
 	def setData(self,metadata,text):
@@ -127,21 +133,21 @@ class Harvester:
 
 		""" now fill with input """
 		self.text = text
-		self.page_id = metadata[0]
-		self.urltitle = metadata[2]
-		self.lastrev_id = metadata[9]
-		self.version = metadata[8][6:8] + metadata[8][4:6] + metadata[8][0:4]
+		self.page_id = metadata['page_id']
+		self.urltitle = metadata['page_title']
+		self.lastrev_id = metadata['page_latest']
+		self.version = metadata['page_touched'][6:8] + metadata['page_touched'][4:6] + metadata['page_touched'][0:4]
 
 		""" educational metadata """
 		#self.fk = fleschkincaid.FleschKincaid(self.text.encode('utf-8'),'nl_NL')
 		self.fk = fleschkincaid.FleschKincaid(self.text,'nl_NL')
 
 		if self.fk.scores['sent_count'] >= 10 and self.fk.scores['sentlen_average'] < 100:
-			self.updated = common.makeTimestamp(metadata[8])
+			self.updated = common.makeTimestamp(metadata['page_touched'])
 			self.setTitleDescription()
 			self.keywordExtract()
 
-			self.printLOM()
+			#self.printLOM()
 			self.storeResults()
 			#import sys
 			#sys.exit()
@@ -151,7 +157,7 @@ class Harvester:
 		lines = self.text.split('\n')
 		""" Not taking first line because before each line, a linebreak is inserted. """
 		self.title = lines[1]
-		self.description = lines[3]
+		self.description = self.re_htmltags.sub("",lines[3])
 
 
 	def keywordExtract(self):
@@ -182,20 +188,22 @@ class Harvester:
 		c = self.DB.cursor()
 
 		""" retrieve by page_id, if exists, update, else insert """
-		query = "SELECT * FROM " + self.config["wiki"] + " WHERE page_id = %s"
+		query = "SELECT * FROM " + self.config["setspec"] + " WHERE page_id = %s"
 		c.execute(query, (self.page_id))
 		row = c.fetchone()
 		
 		if row:
-			identifier = row[0]
-			query = "UPDATE " + self.config["wiki"] + " SET title=%s, description=%s, lastrev_id=%s, version=%s, updated=%s, min_age=%s, sentences=%s, words=%s WHERE page_id = %s"
+			identifier = row['identifier']
+			query = "UPDATE " + self.config["setspec"] + " SET title=%s, description=%s, lastrev_id=%s, version=%s, updated=%s, min_age=%s, sentences=%s, words=%s WHERE page_id = %s"
 			c.execute(query, (self.title,self.description,self.lastrev_id,self.version,self.updated,int(self.fk.min_age),self.fk.scores['sent_count'],self.fk.scores['word_count'],self.page_id))
 			c.execute("""UPDATE oairecords SET updated=%s WHERE identifier=%s""", (timestamp,identifier))
 		else:
 			identifier = uuid4()
-			query = "INSERT INTO " + self.config["wiki"] + " (identifier, page_id, title, url_title, description, lastrev_id, version, updated, min_age, sentences, words) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
+			query = "INSERT INTO " + self.config["setspec"] + " (identifier, page_id, title, url_title, description, lastrev_id, version, updated, min_age, sentences, words) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
 			c.execute(query, (identifier,self.page_id,self.title,self.urltitle,self.description,self.lastrev_id,self.version,self.updated,int(self.fk.min_age),self.fk.scores['sent_count'],self.fk.scores['word_count']) )
-			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,self.config["wiki"],timestamp))
+			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,self.config["setspec"],timestamp))
+
+		c.close()
 
 
 	""" Debug """

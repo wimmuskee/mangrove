@@ -11,7 +11,7 @@ License: GPL-3
 
 import argparse
 import os.path
-from sys import exit
+from sys import exit, exc_info
 from mangrove_crawler import common
 
 parser = argparse.ArgumentParser(description='Crawler for the Source to LOM project.')
@@ -49,6 +49,7 @@ if args.source:
 		Harvester = harvester.Harvester(config)
 	except:
 		print("Cannot load module for source: " + source)
+		print "Unexpected error: ", exc_info()[0]
 		exit()
 
 	""" starting harvest process """
