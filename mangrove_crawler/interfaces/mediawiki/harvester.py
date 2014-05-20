@@ -2,7 +2,7 @@
 
 import common
 from mangrove_crawler.textprocessing import getStopwords
-from mangrove_crawler.common import downloadFile, removeFile, gzUnpack, bz2Unpack, checkLocal
+from mangrove_crawler.common import downloadFile, removeFile, removeDir, gzUnpack, bz2Unpack, checkLocal
 import MySQLdb
 import MySQLdb.cursors
 import re
