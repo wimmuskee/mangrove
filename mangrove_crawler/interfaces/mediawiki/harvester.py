@@ -19,6 +19,7 @@ class Harvester:
 	def __init__(self,config):
 		self.config = config
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
+		self.DB.set_character_set('utf8')
 		self.config["dest_prefix"] = config["work_dir"] + "/" + config["wiki"] + "-"
 		self.re_docid = re.compile(r'id="([0-9]*?)"')
 		self.re_htmltags = re.compile('<[^<]+?>')

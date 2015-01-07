@@ -12,6 +12,7 @@ class Harvester:
 	def __init__(self,config):
 		self.config = config
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
+		self.DB.set_character_set('utf8')
 
 
 	def harvest(self,channel=""):

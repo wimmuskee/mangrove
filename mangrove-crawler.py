@@ -3,7 +3,7 @@
 """
 The basic execution script for the mangrove crawler
 
-Wim Muskee, 2013
+Wim Muskee, 2013-2015
 wimmuskee@gmail.com
 
 License: GPL-3
