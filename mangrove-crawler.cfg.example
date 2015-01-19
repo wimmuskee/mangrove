@@ -1,3 +1,8 @@
+[common]
+# use ip adress when using proxy for youtube
+proxy_host=123.123.23.23
+proxy_port=3128
+
 [wikipedia_nl]
 module=mediawiki
 wiki=nlwiki

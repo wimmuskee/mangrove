@@ -35,11 +35,18 @@ if args.source:
 	else:
 		part = ""
 
-	""" get config for source """
+	""" get common config """
 	try:
-		config = common.getConfig(configfile,source)
+		config = common.getConfig(configfile,"common")
+	except:
+		parser.error('no common config defined')
+
+	""" merge config for source """
+	try:
+		config.update(common.getConfig(configfile,source))
 	except:
 		parser.error('Invalid source: ' + source)
+
 
 	""" load and start harvester """
 	try:
