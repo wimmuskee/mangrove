@@ -50,12 +50,14 @@ def removeFile(filename):
 	except OSError:
 		pass
 
+
 def removeDir(dirname):
 	from shutil import rmtree
 	try:
 		rmtree(dirname)
 	except:
 		pass
+
 
 def gzUnpack(source,dest):
 	import gzip
@@ -79,3 +81,9 @@ def checkLocal():
 		return true
 	else:
 		return false
+
+
+def getHttplib2Proxy(proxy_host,proxy_port):
+	import httplib2
+	import socks
+	return httplib2.Http(proxy_info = httplib2.ProxyInfo(socks.PROXY_TYPE_HTTP, proxy_host, int(proxy_port), False))

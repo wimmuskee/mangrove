@@ -7,9 +7,9 @@ YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 MAXRESULTS = 10
 
-def getChannelPage(developer_key,channel_id,fromts,token=""):
+def getChannelPage(httpProxy,developer_key,channel_id,fromts,token=""):
 	# https://developers.google.com/youtube/v3/docs/search/list
-	youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key)
+	youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key, http=httpProxy)
 
 	response = youtube.search().list(
 		channelId=channel_id,
@@ -38,7 +38,7 @@ def getChannelPage(developer_key,channel_id,fromts,token=""):
 			video["publishdate"] = item["snippet"]["publishedAt"]
 			videos[item["id"]["videoId"]] = video
 
-	videodetails = getVideoDetails(developer_key,",".join(videos.keys()))
+	videodetails = getVideoDetails(httpProxy,developer_key,",".join(videos.keys()))
 	
 	for vid in videodetails.keys():
 		videos[vid].update(videodetails[vid])
@@ -46,9 +46,9 @@ def getChannelPage(developer_key,channel_id,fromts,token=""):
 	return { "meta" : meta, "videos":videos }
 
 
-def getVideoDetails(developer_key,video_ids):
+def getVideoDetails(httpProxy,developer_key,video_ids):
 	# https://developers.google.com/youtube/v3/docs/videos/list
-	youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key)
+	youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key, http=httpProxy)
 
 	response = youtube.videos().list(
 		id=video_ids,
@@ -70,9 +70,9 @@ def getVideoDetails(developer_key,video_ids):
 	return videos
 
 
-def getChannelInfo(developer_key,username):
+def getChannelInfo(httpProxy,developer_key,username):
 	# https://developers.google.com/youtube/v3/docs/channels/list
-	youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key)
+	youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key, http=httpProxy)
 	
 	response = youtube.channels().list(
 		forUsername=username,

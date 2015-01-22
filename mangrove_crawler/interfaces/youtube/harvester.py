@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import common
+from mangrove_crawler.common import getHttplib2Proxy
 from json import dumps
 import MySQLdb
 from time import sleep, time
@@ -13,6 +14,10 @@ class Harvester:
 		self.config = config
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
 		self.DB.set_character_set('utf8')
+		self.httpProxy=None
+
+		if self.config["proxy_host"]:
+			self.httpProxy = getHttplib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
 
 
 	def harvest(self,channel=""):
@@ -28,7 +33,7 @@ class Harvester:
 				self.updateChannelTimestamp(row[0])
 			else:
 				print "Channel: " + channel + " not found. Add the following:"
-				info = common.getChannelInfo(self.config["developer_key"],channel)
+				info = common.getChannelInfo(self.httpProxy,self.config["developer_key"],channel)
 				print dumps(info, indent=4)
 		else:
 			print "Harvesting all channels"
@@ -40,7 +45,7 @@ class Harvester:
 
 
 	def getPage(self,channel_id,fromts,setspec,token=""):
-		result = common.getChannelPage(self.config["developer_key"],channel_id,fromts,token)
+		result = common.getChannelPage(self.httpProxy,self.config["developer_key"],channel_id,fromts,token)
 		
 		for vid in result["videos"].keys():
 			print dumps(result["videos"][vid],4)
