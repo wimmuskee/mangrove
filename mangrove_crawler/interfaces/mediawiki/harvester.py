@@ -190,8 +190,8 @@ class Harvester:
 		c = self.DB.cursor()
 
 		""" retrieve by page_id, if exists, update, else insert """
-		query = "SELECT * FROM " + self.config["setspec"] + " WHERE page_id = %s"
-		c.execute(query, (self.page_id))
+		query = "SELECT * FROM " + self.config["setspec"] + " WHERE page_id = " + str(self.page_id)
+		c.execute(query)
 		row = c.fetchone()
 		
 		if row:
