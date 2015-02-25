@@ -8,7 +8,7 @@ if [ ! -f ${input} ]; then
 fi
 
 if [ ! -d ${outputdir} ]; then
-	exit 1
+	mkdir -p ${outputdir}
 fi
 
 

@@ -83,6 +83,7 @@ class Harvester:
 		outputdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
 		inputfile = self.config["dest_prefix"] + "pages-articles.xml"
 		script = self.share_prefix + "WikiExtractorWrapper.sh"
+		print( script + " " + inputfile + " " + outputdir )
 		call([script, inputfile, outputdir])
 
 
@@ -108,8 +109,8 @@ class Harvester:
 				article = ""
 				id = self.re_docid.search(line).group(1)
 			elif line[:6] == "</doc>":
-				query = "SELECT * FROM " + self.config["wiki"] + "_page WHERE page_id = %s"
-				c.execute(query, (id))
+				query = "SELECT * FROM " + self.config["wiki"] + "_page WHERE page_id = " + id
+				c.execute(query)
 				row = c.fetchone()
 				if row:
 					self.setData(row,article)
