@@ -83,7 +83,6 @@ class Harvester:
 		outputdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
 		inputfile = self.config["dest_prefix"] + "pages-articles.xml"
 		script = self.share_prefix + "WikiExtractorWrapper.sh"
-		print( script + " " + inputfile + " " + outputdir )
 		call([script, inputfile, outputdir])
 
 
@@ -209,7 +208,7 @@ class Harvester:
 
 
 	def cleanup(self):
-		file_prefix = self.config["download_path"] + self.config["wiki"] + "-"
+		file_prefix = self.config["work_dir"] + "/" + self.config["wiki"] + "-"
 		extractdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
 
 		print("Cleaning up workdir files")
