@@ -3,7 +3,7 @@
 This module contains common functions
 for the mangrove crawler.
 
-Wim Muskee, 2013
+Wim Muskee, 2013-2015
 wimmuskee@gmail.com
 
 License: GPL-3
@@ -18,7 +18,11 @@ def getConfig(configfile,section):
 	options = Config.options(section)
 	for option in options:
 		try:
-			config_options[option] = Config.get(section, option)
+			if option == "proxy_use":
+				config_options["proxy_use"] = Config.getboolean(section, "proxy_use")
+			else:
+				config_options[option] = Config.get(section, option)
+
 			if config_options[option] == -1:
 				DebugPrint("skip: %s" % option)
 		except:

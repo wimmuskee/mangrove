@@ -16,7 +16,7 @@ class Harvester:
 		self.DB.set_character_set('utf8')
 		self.httpProxy=None
 
-		if self.config["proxy_host"]:
+		if self.config["proxy_host"] and self.config["proxy_use"]:
 			self.httpProxy = getHttplib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
 
 

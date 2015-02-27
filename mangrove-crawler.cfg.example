@@ -12,6 +12,7 @@ db_host=localhost
 db_user=root
 db_passwd=*******
 db_name=wikilom
+proxy_use=false
 work_dir=/opt/Wikipedia
 
 [youtube]
@@ -20,4 +21,5 @@ db_host=localhost
 db_user=root
 db_passwd=*******
 db_name=youtubelom
+proxy_use=false
 developer_key=****
