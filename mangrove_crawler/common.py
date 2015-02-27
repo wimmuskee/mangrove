@@ -39,8 +39,12 @@ def import_from(module, name):
 	return getattr(module, name)
 
 
-def downloadFile(source,dest):
+def downloadFile(httpProxy,source,dest):
 	import urllib2
+	if httpProxy:
+		opener = urllib2.build_opener(httpProxy)
+		urllib2.install_opener(opener)
+
 	f = urllib2.urlopen(source)
 	output = open(dest,'wb')
 	output.write(f.read())
@@ -91,3 +95,8 @@ def getHttplib2Proxy(proxy_host,proxy_port):
 	import httplib2
 	import socks
 	return httplib2.Http(proxy_info = httplib2.ProxyInfo(socks.PROXY_TYPE_HTTP, proxy_host, int(proxy_port), False))
+
+
+def getUrllib2Proxy(proxy_host,proxy_port):
+	import urllib2
+	return urllib2.ProxyHandler({"http": proxy_host + ":" + proxy_port})

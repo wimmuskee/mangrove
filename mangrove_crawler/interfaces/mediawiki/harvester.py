@@ -2,7 +2,7 @@
 
 import common
 from mangrove_crawler.textprocessing import getStopwords
-from mangrove_crawler.common import downloadFile, removeFile, removeDir, gzUnpack, bz2Unpack, checkLocal
+from mangrove_crawler.common import downloadFile, removeFile, removeDir, gzUnpack, bz2Unpack, checkLocal, getUrllib2Proxy
 import MySQLdb
 import MySQLdb.cursors
 import re
@@ -20,9 +20,13 @@ class Harvester:
 		self.config = config
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
 		self.DB.set_character_set('utf8')
+		self.httpProxy = None
 		self.config["dest_prefix"] = config["work_dir"] + "/" + config["wiki"] + "-"
 		self.re_docid = re.compile(r'id="([0-9]*?)"')
 		self.re_htmltags = re.compile('<[^<]+?>')
+
+		if self.config["proxy_host"] and self.config["proxy_use"]:
+			self.httpProxy = getUrllib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
 
 		if checkLocal:
 			self.share_prefix = "share/interfaces/mediawiki/"
@@ -43,12 +47,12 @@ class Harvester:
 		src_prefix = self.config["download_path"] + self.config["wiki"] + "-"
 
 		print "Downloading page sql file"
-		downloadFile(src_prefix + "latest-page.sql.gz", self.config["dest_prefix"] + "page.sql.gz")
+		downloadFile(self.httpProxy, src_prefix + "latest-page.sql.gz", self.config["dest_prefix"] + "page.sql.gz")
 		print "Unpacking page sql file"
 		gzUnpack(self.config["dest_prefix"] + "page.sql.gz",  self.config["dest_prefix"] + "page.sql" )
 
 		print "Downloading page xml file"
-		downloadFile(src_prefix + "latest-pages-articles.xml.bz2", self.config["dest_prefix"] + "pages-articles.xml.bz2")
+		downloadFile(self.httpProxy, src_prefix + "latest-pages-articles.xml.bz2", self.config["dest_prefix"] + "pages-articles.xml.bz2")
 		print "Unpacking page xml file"
 		""" unpacking at shell level, wikipedia file too large for bz2 module """
 		bzfile = self.config["dest_prefix"] + "pages-articles.xml.bz2"
@@ -56,7 +60,7 @@ class Harvester:
 			call("bunzip2 " + bzfile, shell=True)
 
 		print "Downloading categories sql file"
-		downloadFile(src_prefix + "latest-categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql.gz")
+		downloadFile(self.httpProxy, src_prefix + "latest-categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql.gz")
 		print "Unpacking categories sql file"
 		gzUnpack(self.config["dest_prefix"] + "categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql")
 
