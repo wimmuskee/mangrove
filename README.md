@@ -9,6 +9,7 @@ Dependencies listed for each interface. Currently tested for Python 2.7.
 - [readability-score](http://github.com/wimmuskee/readability-score)
 - [MySQLdb](http://sourceforge.net/projects/mysql-python/)
 - [wikipedia-extractor](https://github.com/bwbaugh/wikipedia-extractor)
+- [requests](http://python-requests.org)
 
 ## youtube ##
 - [google-api-python-client](http://code.google.com/p/google-api-python-client/)
