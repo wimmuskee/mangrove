@@ -2,7 +2,7 @@
 
 import common
 from mangrove_crawler.textprocessing import getStopwords
-from mangrove_crawler.common import downloadFile, removeFile, removeDir, gzUnpack, bz2Unpack, checkLocal, getRequestsProxy
+from mangrove_crawler.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy
 import MySQLdb
 import MySQLdb.cursors
 import re
@@ -44,17 +44,21 @@ x
 
 
 	def getData(self):
+		""" Downloading and unpacking the files.
+		Unpacking at shell level, Wikipedia files too large for Python in-memory processing.
+		"""
 		src_prefix = self.config["download_path"] + self.config["wiki"] + "-"
 
 		print "Downloading page sql file"
 		downloadFile(self.httpProxy, src_prefix + "latest-page.sql.gz", self.config["dest_prefix"] + "page.sql.gz")
 		print "Unpacking page sql file"
-		gzUnpack(self.config["dest_prefix"] + "page.sql.gz",  self.config["dest_prefix"] + "page.sql" )
+		gzfile = self.config["dest_prefix"] + "page.sql.gz"
+		if path.isfile(gzfile):
+			call("gunzip " + gzfile, shell=True)
 
 		print "Downloading page xml file"
 		downloadFile(self.httpProxy, src_prefix + "latest-pages-articles.xml.bz2", self.config["dest_prefix"] + "pages-articles.xml.bz2")
 		print "Unpacking page xml file"
-		""" unpacking at shell level, wikipedia file too large for bz2 module """
 		bzfile = self.config["dest_prefix"] + "pages-articles.xml.bz2"
 		if path.isfile(bzfile):
 			call("bunzip2 " + bzfile, shell=True)
@@ -62,7 +66,9 @@ x
 		print "Downloading categories sql file"
 		downloadFile(self.httpProxy, src_prefix + "latest-categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql.gz")
 		print "Unpacking categories sql file"
-		gzUnpack(self.config["dest_prefix"] + "categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql")
+		gzfile = self.config["dest_prefix"] + "categorylinks.sql.gz"
+		if path.isfile(gzfile):
+			call("gunzip " + gzfile, shell=True)
 
 		print "Removing downloaded files"
 		removeFile(self.config["dest_prefix"] + "page.sql.gz")
