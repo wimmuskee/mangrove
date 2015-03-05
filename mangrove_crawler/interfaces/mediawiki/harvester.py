@@ -26,7 +26,7 @@ class Harvester:
 		self.re_htmltags = re.compile('<[^<]+?>')
 
 		if self.config["proxy_host"] and self.config["proxy_use"]:
-			self.httpProxy = getUrllib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
+			self.httpProxy = getRequestsProxy(self.config["proxy_host"],self.config["proxy_port"])
 
 		if checkLocal:
 			self.share_prefix = "share/interfaces/mediawiki/"
