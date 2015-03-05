@@ -2,7 +2,7 @@
 
 import common
 from mangrove_crawler.textprocessing import getStopwords
-from mangrove_crawler.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy
+from mangrove_crawler.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy, checkPrograms
 import MySQLdb
 import MySQLdb.cursors
 import re
@@ -27,11 +27,13 @@ class Harvester:
 
 		if self.config["proxy_host"] and self.config["proxy_use"]:
 			self.httpProxy = getUrllib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
-x
+
 		if checkLocal:
 			self.share_prefix = "share/interfaces/mediawiki/"
 		else:
 			self.share_prefix = "/usr/share/mangrove/interfaces/mediawiki/"
+
+		checkPrograms(["gunzip", "bunzip2", "WikiExtractor.py", "mysql"])
 
 
 	def harvest(self,part=""):
