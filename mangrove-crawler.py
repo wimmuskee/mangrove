@@ -25,7 +25,7 @@ configfile = "mangrove-crawler.cfg"
 if args.configfile:
 	configfile = args.configfile[0]
 	if not os.path.isfile(configfile):
-		parser.error('Invalid config file: ' + configfile)
+		parser.error('Config file not found: ' + configfile)
 
 if args.source:
 	source = args.source[0]
@@ -39,13 +39,13 @@ if args.source:
 	try:
 		config = common.getConfig(configfile,"common")
 	except:
-		parser.error('no common config defined')
+		parser.error('No common config defined')
 
 	""" merge config for source """
 	try:
 		config.update(common.getConfig(configfile,source))
 	except:
-		parser.error('Invalid source: ' + source)
+		parser.error('Invalid source config: ' + source)
 
 
 	""" load and start harvester """
@@ -55,6 +55,7 @@ if args.source:
 	except:
 		print("Cannot load module for source: " + source)
 		print "Unexpected error: ", exc_info()[0]
+		print exc_info()[1]
 		exit()
 
 	""" starting harvest process """
