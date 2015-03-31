@@ -39,10 +39,11 @@ def import_from(module, name):
 	return getattr(module, name)
 
 
-""" Download a file using chunks to deal with large files. """
+""" Download a file using chunks to deal with large files. Disable default compression handling. """
 def downloadFile(httpProxy,source,dest):
 	import requests
-	r = requests.get(source, stream=True, proxies=httpProxy)
+	headers = {"Accept-Encoding": "identity"}
+	r = requests.get(source, stream=True, proxies=httpProxy, headers=headers)
 	with open(dest, 'wb') as f:
 		for chunk in r.iter_content(chunk_size=1024):
 			if chunk: # filter out keep-alive new chunks
