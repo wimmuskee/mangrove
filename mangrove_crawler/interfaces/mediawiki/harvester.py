@@ -33,7 +33,7 @@ class Harvester:
 		else:
 			self.share_prefix = "/usr/share/mangrove/interfaces/mediawiki/"
 
-		checkPrograms(["bunzip2", "WikiExtractor.py", "mysql"])
+		checkPrograms(["gunzip", "bunzip2", "WikiExtractor.py", "mysql"])
 
 
 	def harvest(self,part=""):
@@ -48,12 +48,15 @@ class Harvester:
 	def getData(self):
 		""" Downloading and unpacking the files.
 		Unpacking at shell level, Wikipedia files too large for Python in-memory processing.
-		Request library automatically gunzips downloaded gzip files.
 		"""
 		src_prefix = self.config["download_path"] + self.config["wiki"] + "-"
 
 		print "Downloading page sql file"
-		downloadFile(self.httpProxy, src_prefix + "latest-page.sql.gz", self.config["dest_prefix"] + "page.sql")
+		downloadFile(self.httpProxy, src_prefix + "latest-page.sql.gz", self.config["dest_prefix"] + "page.sql.gz")
+		print "Unpacking page sql file"
+		gzfile = self.config["dest_prefix"] + "page.sql.gz"
+		if path.isfile(gzfile):
+			call("gunzip " + gzfile, shell=True)
 
 		print "Downloading page xml file"
 		downloadFile(self.httpProxy, src_prefix + "latest-pages-articles.xml.bz2", self.config["dest_prefix"] + "pages-articles.xml.bz2")
@@ -63,10 +66,16 @@ class Harvester:
 			call("bunzip2 " + bzfile, shell=True)
 
 		print "Downloading categories sql file"
-		downloadFile(self.httpProxy, src_prefix + "latest-categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql")
+		downloadFile(self.httpProxy, src_prefix + "latest-categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql.gz")
+		print "Unpacking categories sql file"
+		gzfile = self.config["dest_prefix"] + "categorylinks.sql.gz"
+		if path.isfile(gzfile):
+			call("gunzip " + gzfile, shell=True)
 
 		print "Removing downloaded files"
+		removeFile(self.config["dest_prefix"] + "page.sql.gz")
 		removeFile(self.config["dest_prefix"] + "pages-articles.xml.bz2")
+		removeFile(self.config["dest_prefix"] + "categorylinks.sql.gz")
 
 
 	def importData(self):
