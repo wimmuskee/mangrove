@@ -81,3 +81,20 @@ def getChannelInfo(httpProxy,developer_key,username):
 	).execute()
 	
 	return response["items"][0]
+
+
+def getVideoAvailableStatus(developer_key,youtube_id):
+	# similar to getVideoDetails, just getting the id and check nr of results.
+	# just checking on id, does not cost quota
+	youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key, http=httpProxy)
+
+	response = youtube.videos().list(
+		id=youtube_id,
+		part="id",
+		maxResults=1
+	).execute()
+	
+	if response["pageInfo"]["totalResults"] == 0:
+		return False
+	else:
+		return True
