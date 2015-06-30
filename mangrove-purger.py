@@ -16,7 +16,8 @@ from mangrove_crawler import common
 
 parser = argparse.ArgumentParser(description='Purger for the Source to LOM project.')
 parser.add_argument('-s', '--source', nargs=1, help='Data provider', metavar='datasource', dest='source')
-parser.add_argument('-m', '--method', nargs=1, help='Purging method; sync, record id, or file', metavar='method', dest='method')
+parser.add_argument('-m', '--method', nargs=1, help='Purging method; sync, record id, channel, or file', metavar='method', dest='method')
+parser.add_argument('-p', '--part', nargs=1, help='Identifiable subset of provider', metavar='subset', dest='part')
 parser.add_argument('-c', '--config', nargs=1, help='Config file', metavar='configfile', dest='configfile')
 
 args = parser.parse_args()
@@ -35,6 +36,10 @@ if not args.method:
 
 source = args.source[0]
 method = args.method[0]
+part = None
+
+if args.part:
+	part = args.part[0]
 
 
 """ get common config """
@@ -61,6 +66,5 @@ except:
 	exit()
 
 """ starting purge process """
-print "Purging: " + source + " by " + method
-Purger.purge(method)
+Purger.purge(method,part)
 
