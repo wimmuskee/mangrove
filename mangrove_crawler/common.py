@@ -132,3 +132,10 @@ def checkPrograms(programlist):
 	for p in programlist:
 		if not which(p):
 			raise RuntimeError( "executable does not exist: " + p )
+
+
+""" return simple logger object """
+def getLogger(application):
+	import logging
+	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
+	return logging.getLogger(application)
