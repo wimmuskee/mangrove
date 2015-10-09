@@ -12,6 +12,7 @@ class Purger:
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
 		self.DB.set_character_set('utf8')
 		self.httpProxy=None
+		self.logger = getLogger('youtube purger')
 
 		if self.config["proxy_host"] and self.config["proxy_use"]:
 			self.httpProxy = getHttplib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
@@ -23,38 +24,38 @@ class Purger:
 		if method == "channel":
 			self.channel(part)
 		if method == "file":
-			print("not working atm")
+			self.logger.info("not working atm")
 		if method == "record_id":
-			print("not working atm")
+			self.logger.info("not working atm")
 
 
 	def sync(self):
 		timestamp = int(time())
 		c = self.DB.cursor()
 		
-		print("Purging all youtube video's that are not available.")
+		self.logger.info("Purging all youtube video's that are not available.")
 		query = "SELECT identifier,youtube_id FROM videos WHERE available = 1"
 		c.execute(query)
 
 		for row in c.fetchall():
 			identifier = row[0]
 			if not common.getVideoAvailableStatus(self.httpProxy,self.config["developer_key"],row[1]):
-				print(identifier)
+				self.logger.info("purging: " + identifier)
 				c.execute("""UPDATE videos SET available=0 WHERE identifier=%s""", (identifier,))
 				c.execute("""UPDATE oairecords SET updated=%s, deleted=1 WHERE identifier=%s""", (timestamp,identifier))
 
-			sleep(5)
+			sleep(1)
 
 
 	def channel(self,part):
 		if not part:
-			print("part is required for channel purge")
+			self.logger.info("part is required for channel purge")
 			quit()
 		
 		timestamp = int(time())
 		c = self.DB.cursor()
 		
-		print("Purging all " + part + " youtube video's.")
+		self.logger.info("Purging all " + part + " youtube video's.")
 		
 		# getting channel_id
 		c.execute("""SELECT youtube_id FROM channels WHERE username = %s""", (part,))
@@ -62,7 +63,7 @@ class Purger:
 		if row:
 			channel_id = row[0]
 		else:
-			print("Channel not found, exiting")
+			self.logger.info("Channel not found, exiting")
 			quit()
 		
 		# get channel records
@@ -70,7 +71,7 @@ class Purger:
 		
 		for row in c.fetchall():
 			identifier = row[0]
-			print(identifier)
+			self.logger.info("purging: " + identifier)
 			c.execute("""UPDATE videos SET available=0 WHERE identifier=%s""", (identifier,))
 			c.execute("""UPDATE oairecords SET updated=%s, deleted=1 WHERE identifier=%s""", (timestamp,identifier))
 			sleep(1)

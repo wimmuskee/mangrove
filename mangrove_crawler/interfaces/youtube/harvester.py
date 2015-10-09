@@ -15,6 +15,7 @@ class Harvester:
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
 		self.DB.set_character_set('utf8')
 		self.httpProxy=None
+		self.logger = getLogger('youtube harvester')
 
 		if self.config["proxy_host"] and self.config["proxy_use"]:
 			self.httpProxy = getHttplib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
@@ -24,7 +25,7 @@ class Harvester:
 		c = self.DB.cursor()
 
 		if channel:
-			print "Harvesting " + channel
+			self.logger.info("harvesting " + channel)
 			query = "SELECT youtube_id,updated,setspec FROM channels WHERE username = %s"
 			c.execute(query, (channel))
 			row = c.fetchone()
@@ -36,7 +37,7 @@ class Harvester:
 				info = common.getChannelInfo(self.httpProxy,self.config["developer_key"],channel)
 				print dumps(info, indent=4)
 		else:
-			print "Harvesting all channels"
+			self.logger.info("Harvesting all channels")
 			query = "SELECT youtube_id,updated,setspec FROM channels;"
 			c.execute(query)
 			for row in c.fetchall():
