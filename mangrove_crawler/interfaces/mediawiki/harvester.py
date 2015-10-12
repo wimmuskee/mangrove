@@ -2,7 +2,7 @@
 
 import common
 from mangrove_crawler.textprocessing import getStopwords
-from mangrove_crawler.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy, checkPrograms
+from mangrove_crawler.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy, checkPrograms, getLogger
 import MySQLdb
 import MySQLdb.cursors
 import re
@@ -24,6 +24,8 @@ class Harvester:
 		self.config["dest_prefix"] = config["work_dir"] + "/" + config["wiki"] + "-"
 		self.re_docid = re.compile(r'id="([0-9]*?)"')
 		self.re_htmltags = re.compile('<[^<]+?>')
+		self.logger = getLogger('mediawiki harvester')
+
 
 		if self.config["proxy_host"] and self.config["proxy_use"]:
 			self.httpProxy = getRequestsProxy(self.config["proxy_host"],self.config["proxy_port"])
@@ -51,35 +53,38 @@ class Harvester:
 		"""
 		src_prefix = self.config["download_path"] + self.config["wiki"] + "-"
 
-		print "Downloading page sql file"
+		self.logger.info("Downloading page sql file")
 		downloadFile(self.httpProxy, src_prefix + "latest-page.sql.gz", self.config["dest_prefix"] + "page.sql.gz")
-		print "Unpacking page sql file"
+		
+		self.logger.info("Unpacking page sql file")
 		gzfile = self.config["dest_prefix"] + "page.sql.gz"
 		if path.isfile(gzfile):
 			call("gunzip " + gzfile, shell=True)
 
-		print "Downloading page xml file"
+		self.logger.info("Downloading page xml file")
 		downloadFile(self.httpProxy, src_prefix + "latest-pages-articles.xml.bz2", self.config["dest_prefix"] + "pages-articles.xml.bz2")
-		print "Unpacking page xml file"
+		
+		self.logger.info("Unpacking page xml file")
 		bzfile = self.config["dest_prefix"] + "pages-articles.xml.bz2"
 		if path.isfile(bzfile):
 			call("bunzip2 " + bzfile, shell=True)
 
-		print "Downloading categories sql file"
+		self.logger.info("Downloading categories sql file")
 		downloadFile(self.httpProxy, src_prefix + "latest-categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql.gz")
-		print "Unpacking categories sql file"
+		
+		self.logger.info("Unpacking categories sql file")
 		gzfile = self.config["dest_prefix"] + "categorylinks.sql.gz"
 		if path.isfile(gzfile):
 			call("gunzip " + gzfile, shell=True)
 
-		print "Removing downloaded files"
+		self.logger.info("Removing downloaded files")
 		removeFile(self.config["dest_prefix"] + "page.sql.gz")
 		removeFile(self.config["dest_prefix"] + "pages-articles.xml.bz2")
 		removeFile(self.config["dest_prefix"] + "categorylinks.sql.gz")
 
 
 	def importData(self):
-		print "Importing data in database"
+		self.logger.info("Importing data in database")
 		sqlfiles = [self.config["dest_prefix"] + "page.sql", self.config["dest_prefix"] + "categorylinks.sql"]
 		
 		sqlfiles.extend([self.share_prefix + "importCategories.sql", self.share_prefix + "importCategoryRelations.sql"])
@@ -91,7 +96,7 @@ class Harvester:
 
 
 	def preprocessText(self):
-		print "Preprocessing text"
+		self.logger.info("Preprocessing text")
 		outputdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
 		inputfile = self.config["dest_prefix"] + "pages-articles.xml"
 		script = self.share_prefix + "WikiExtractorWrapper.sh"
@@ -99,7 +104,7 @@ class Harvester:
 
 
 	def parseExtracts(self):
-		print "Parse text extracts"
+		self.logger.info("Parse text extracts")
 		for (dirpath, dirnames, filenames) in walk(self.config["work_dir"] + "/extract-" + self.config["wiki"]):
 			for bzfile in filenames:
 				self.parseExtract(dirpath + "/" + bzfile)
@@ -223,7 +228,7 @@ class Harvester:
 		file_prefix = self.config["work_dir"] + "/" + self.config["wiki"] + "-"
 		extractdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
 
-		print("Cleaning up workdir files")
+		self.logger.info("Cleaning up workdir files")
 		removeFile(file_prefix + "categorylinks.sql")
 		removeFile(file_prefix + "page.sql")
 		removeFile(file_prefix + "pages-articles.xml")
