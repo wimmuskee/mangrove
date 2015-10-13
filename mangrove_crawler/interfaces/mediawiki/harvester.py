@@ -36,6 +36,7 @@ class Harvester:
 			self.share_prefix = "/usr/share/mangrove/interfaces/mediawiki/"
 
 		checkPrograms(["gunzip", "bunzip2", "WikiExtractor.py", "mysql"])
+		self.stopwords = getStopwords(self.httpProxy)
 
 
 	def harvest(self,part=""):
@@ -180,9 +181,8 @@ class Harvester:
 
 	def keywordExtract(self):
 		""" not using work_tokenize because of unicode characters """
-		ignored_words = getStopwords()
 		words = tokenize.wordpunct_tokenize( self.text )
-		filtered_words = [w.lower() for w in words if not w.lower() in ignored_words]
+		filtered_words = [w.lower() for w in words if not w.lower() in self.stopwords]
 		include_threshold = round(self.fk.scores['word_count'] * 0.003)
 
 		""" collect word statistics """
