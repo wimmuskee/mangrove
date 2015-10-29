@@ -84,12 +84,15 @@ class Harvester:
 		removeFile(self.config["dest_prefix"] + "categorylinks.sql.gz")
 
 
+	""" downloaded sql + custom sql to trim the total set """
 	def importData(self):
 		self.logger.info("Importing data in database")
 		sqlfiles = [self.config["dest_prefix"] + "page.sql", self.config["dest_prefix"] + "categorylinks.sql"]
-		
-		sqlfiles.extend([self.share_prefix + "importCategories.sql", self.share_prefix + "importCategoryRelations.sql"])
-		sqlfiles.extend([self.share_prefix + self.config["wiki"] + "_removeSmallPages.sql", self.share_prefix + self.config["wiki"] + "_selectTitles.sql", self.share_prefix + self.config["wiki"] + "_renameTables.sql"])
+		sqlfiles.append(self.share_prefix + "importCategories.sql")
+		sqlfiles.append(self.share_prefix + "importCategoryRelations.sql")
+		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_removeSmallPages.sql")
+		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_selectTitles.sql")
+		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_renameTables.sql")
 
 		for sql in sqlfiles:
 			process = Popen('mysql %s -u%s -p%s' % (self.config["db_name"], self.config["db_user"], self.config["db_passwd"]), stdout=PIPE, stdin=PIPE, shell=True)

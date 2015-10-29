@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS page_copy;
+
 CREATE TABLE `page_copy` (
   `page_id` int(8) unsigned NOT NULL AUTO_INCREMENT,
   `page_namespace` int(11) NOT NULL DEFAULT '0',
