@@ -29,5 +29,7 @@ OR (
 wikikids.title IS NULL
 );
 
-RENAME TABLE page TO page_old, page_copy TO page;
-DROP TABLE page_old;
+-- page_current is used in the purge process
+-- thus represents the current records that should be present
+-- the diff with wikikids can be deleted
+RENAME TABLE page TO wikikids_page_current, page_copy TO page;
