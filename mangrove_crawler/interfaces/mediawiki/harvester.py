@@ -217,7 +217,7 @@ class Harvester:
 			identifier = row['identifier']
 			query = "UPDATE " + self.config["setspec"] + " SET title=%s, description=%s, lastrev_id=%s, version=%s, updated=%s, min_age=%s, sentences=%s, words=%s WHERE page_id = %s"
 			c.execute(query, (self.title,self.description,self.lastrev_id,self.version,self.updated,int(self.fk.min_age),self.fk.scores['sent_count'],self.fk.scores['word_count'],self.page_id))
-			c.execute("""UPDATE oairecords SET updated=%s WHERE identifier=%s""", (timestamp,identifier))
+			c.execute("""UPDATE oairecords SET updated=%s,deleted=0 WHERE identifier=%s""", (timestamp,identifier))
 		else:
 			identifier = uuid4()
 			query = "INSERT INTO " + self.config["setspec"] + " (identifier, page_id, title, url_title, description, lastrev_id, version, updated, min_age, sentences, words) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
