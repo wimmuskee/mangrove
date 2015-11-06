@@ -14,9 +14,3 @@ LEFT JOIN categories ON categorylinks.cl_to = categories.category
 WHERE categorylinks.cl_type = 'subcat';
 
 
--- DELETE FROM categorylinks WHERE cl_type = 'subcat' OR cl_type = 'file';
--- ALTER TABLE categorylinks DROP INDEX cl_sortkey;
--- ALTER TABLE categorylinks DROP INDEX cl_timestamp;
--- ALTER TABLE categorylinks DROP cl_sortkey;
--- ALTER TABLE categorylinks DROP cl_type;
-
