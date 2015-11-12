@@ -12,7 +12,6 @@ CREATE TABLE `page_copy` (
   `page_touched` varbinary(14) NOT NULL DEFAULT '',
   `page_latest` int(8) unsigned NOT NULL DEFAULT '0',
   `page_len` int(8) unsigned NOT NULL DEFAULT '0',
-  `page_no_title_convert` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`page_id`),
   UNIQUE KEY `name_title` (`page_namespace`,`page_title`),
   KEY `page_random` (`page_random`),
@@ -21,7 +20,7 @@ CREATE TABLE `page_copy` (
 ) ENGINE=InnoDB DEFAULT CHARSET=binary;
 
 
-INSERT INTO page_copy SELECT * FROM page
+INSERT INTO page_copy SELECT page.page_id, page_namespace, page_title, page_restrictions, page_counter, page_is_redirect, page_is_new, page_random, page_touched, page_latest, page_len FROM page
 LEFT JOIN wikipedia_nl ON page.page_id = wikipedia_nl.page_id
 WHERE (
 page.page_latest > wikipedia_nl.lastrev_id
@@ -30,5 +29,7 @@ OR (
 wikipedia_nl.title IS NULL
 );
 
-RENAME TABLE page TO page_old, page_copy TO page;
-DROP TABLE page_old;
+-- page_current is used in the purge process
+-- thus represents the current records that should be present
+-- the diff with wikipedia_nl can be deleted
+RENAME TABLE page TO nlwiki_page_current, page_copy TO page;
