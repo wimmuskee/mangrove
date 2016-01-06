@@ -23,3 +23,13 @@ db_passwd=*******
 db_name=youtubelom
 proxy_use=false
 developer_key=****
+
+[khanacademy]
+module=khanacademy
+configuration=khanacademy
+db_host=localhost
+db_user=root
+db_passwd=*******
+db_name=mangrove
+proxy_use=false
+work_dir=/opt/khanacademy
