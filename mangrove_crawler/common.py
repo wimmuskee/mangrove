@@ -139,3 +139,9 @@ def getLogger(application):
 	import logging
 	logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.DEBUG)
 	return logging.getLogger(application)
+
+
+""" from for instance 2012-10-23T16:39:06Z """
+def getTimestampFromZuluDT(dt):
+	from datetime import datetime
+	return int((datetime.strptime( dt, "%Y-%m-%dT%H:%M:%SZ") -  datetime(1970, 1, 1)).total_seconds())
