@@ -4,18 +4,26 @@ Gathers metadata and transforms it to learning object metadata.
 # dependencies #
 Dependencies listed for each interface. Currently tested for Python 2.7.
 
+## generic ##
+- [MySQLdb](http://sourceforge.net/projects/mysql-python/)
+- [configparser] (https://pypi.python.org/pypi/configparser/)
+
 ## mediawiki ##
 - [NLTK](http://nltk.org/) with stopwords and punkt tokenizer
 - [readability-score](http://github.com/wimmuskee/readability-score)
-- [MySQLdb](http://sourceforge.net/projects/mysql-python/)
 - [wikipedia-extractor](https://github.com/bwbaugh/wikipedia-extractor)
 - [requests](http://python-requests.org)
 
 ## youtube ##
 - [google-api-python-client](http://code.google.com/p/google-api-python-client/)
 - [pytz](http://pythonhosted.org/pytz/)
-- [MySQLdb](http://sourceforge.net/projects/mysql-python/)
 - [socksipy](http://socksipy.sourceforge.net) for httplib2 proxy
+
+## khanacademy ##
+- [lxml] (http://lxml.de/)
+- [requests](http://python-requests.org)
+- [RDFLib] (https://github.com/RDFLib/rdflib)
+
 
 # usage #
 The mangrove-crawler start harvesting a source by providing:
@@ -52,4 +60,4 @@ work_dir=/opt/Wikipedia
 The following things to do for a 1.0
 - [ ] setup.py
 - [ ] debug output optional
-- [ ] oaiprovider
+- [ ] oaiprovider/uniform database solution for metadata storage
