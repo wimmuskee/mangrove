@@ -27,7 +27,7 @@ def getEmptyLomDict():
 		"publisher": "",
 		"publishdate": "",
 		"author": [],
-		"metalang": "",
+		"metalanguage": "",
 		"format": "",
 		"location": "",
 		"context": [],
