@@ -145,3 +145,10 @@ def getLogger(application):
 def getTimestampFromZuluDT(dt):
 	from datetime import datetime
 	return int((datetime.strptime( dt, "%Y-%m-%dT%H:%M:%SZ") -  datetime(1970, 1, 1)).total_seconds())
+
+
+""" pretty printer for debug """
+def prettyPrint(data):
+	import pprint
+	pp = pprint.PrettyPrinter(indent=4)
+	pp.pprint(data)
