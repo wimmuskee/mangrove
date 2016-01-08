@@ -10,7 +10,10 @@
 
 import common
 from mangrove_crawler.common import getRequestsProxy, getLogger
+from formatter.nllom import makeLOM, getEmptyLomDict
+from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 import MySQLdb
+import MySQLdb.cursors
 from time import sleep, time
 from uuid import uuid4
 from datetime import datetime
@@ -19,7 +22,7 @@ from datetime import datetime
 class Harvester:
 	def __init__(self,config):
 		self.config = config
-		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
+		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
 		self.DB.set_character_set('utf8')
 		self.httpProxy=None
 		self.logger = getLogger('backstage harvester')
@@ -30,64 +33,92 @@ class Harvester:
 
 	def harvest(self,collection=""):
 		c = self.DB.cursor()
-
-		if collection:
-			self.logger.info("harvesting " + collection)
-			query = "SELECT SUBSTRING(updated, 1, 10) AS fromdate, setspec FROM collections WHERE configuration = %s AND collection = %s"
-			c.execute(query, (self.config["configuration"],collection))
-			row = c.fetchone()
-			
-			if row:
-				self.getPage(collection,row[0],row[1])
-				self.updateCollectionTimestamp(self.config["configuration"],collection)
-			else:
-				self.logger.warn("collection not found: " + collection)
-		else:
-			self.logger.warn("only collection-based harvesting is implemented")
+		query = "SELECT * FROM collections WHERE configuration = %s"
+		c.execute(query, (self.config["configuration"],))
+		row = c.fetchone()
+		fromdate = datetime.fromtimestamp(int(row["updated"])).strftime('%Y-%m-%d')
+		self.config["collection_id"] = row["id"]
+		
+		self.getPage(self.config["configuration"],fromdate)
+		self.updateCollectionTimestamp(self.config["configuration"])
 
 
-	def getPage(self,collection,fromdate,setspec,token=0):
+	def getPage(self,collection,fromdate,token=0):
 		result = common.getResultPage(self.httpProxy,collection,fromdate,token)
 
-		for vid in result["videos"].keys():
-			self.storeResult(result["videos"][vid],collection,setspec)
+		for video_id in result["videos"].keys():
+			v = result["videos"][video_id]
+			r = self.getDefaultRecord()
+			# title might also be a combination of program title, title and subtitle, check that later
+			r["original_id"] = video_id
+			r["title"] = v["item"]["_source"]["title"]
+			r["location"] = v["item"]["_source"]["meta"]["original_object_urls"]["html"]
+			r["author" ] = v["metadata"]["authors"]
+			if "description" in v["item"]["_source"]:
+				r["description"] = v["item"]["_source"]["description"]
+			if "tags" in v["item"]["_source"]:
+				r["keywords"] = v["item"]["_source"]["tags"]
+			if "ageGroups" in v["item"]["_source"]:
+				r["typicalagerange"] = v["item"]["_source"]["ageGroups"]
+			if "tijdsduur" in v["metadata"]:
+				r["duration"] = common.getDuration(v["metadata"]["tijdsduur"] )
+			
+			self.storeResult(r,self.config["configuration"])
 		
 		if result["meta"]["token"] < result["meta"]["total"]:
 			self.logger.debug( "token = " + str(result["meta"]["token"]) + ", total = " + str(result["meta"]["total"]) )
 			sleep(5)
-			self.getPage(collection,fromdate,setspec,result["meta"]["token"])
-			
+			self.getPage(collection,fromdate,result["meta"]["token"])
 
 
-	def storeResult(self,video,collection,setspec):
+	def getDefaultRecord(self):
+		r = getEmptyLomDict()
+		r["publisher"] = self.config["publisher"]
+		r["cost"] = "no"
+		r["language"] = "nl"
+		r["aggregationlevel"] = "2"
+		r["metalanguage"] = "nl"
+		r["learningresourcetype"] = "informatiebron"
+		r["intendedenduserrole"] = "learner"
+		return r
+
+
+	def getOaidcRecord(self,record):
+		r = getEmptyOaidcDict()
+		r["title"] = record["title"]
+		r["description"] = record["description"]
+		r["subject"] = record["keywords"]
+		r["publisher"] = record["publisher"]
+		r["identifier"] = record["location"]
+		r["language"] = record["language"]
+		return r
+
+
+	def storeResult(self,record,setspec):
+		lom = makeLOM(record)
+		oaidc = makeOAIDC(self.getOaidcRecord(record))
 		timestamp = int(time())
 		c = self.DB.cursor()
 		
 		""" retrieve by page_id, if exists, update, else insert """
-		query = "SELECT * FROM records WHERE catalogentry = %s AND catalog = %s"
-		c.execute(query, (video["id"],self.config["configuration"]))
+		query = "SELECT updated FROM oairecords WHERE original_id = \"" + record["original_id"] + "\""
+		c.execute(query)
 		row = c.fetchone()
 		
 		if row:
-			identifier = row[0]
-			self.logger.debug("updating video: " + str(video["id"]))
-			query = "UPDATE records SET title=%s, description=%s, location=%s, duration=%s WHERE identifier = %s"
-			c.execute(query, (video["title"],video["description"],video["location"],video["duration"],identifier))
-			c.execute("""UPDATE oairecords SET updated=%s WHERE identifier=%s""", (timestamp,identifier))
+			query = "UPDATE oairecords SET updated=%s, lom=%s, oaidc=%s WHERE original_id=%s"
+			c.execute(query,(timestamp,lom,oaidc,record["original_id"]))
 		else:
 			identifier = uuid4()
-			self.logger.debug("saving video: " + str(video["id"]))
-			query = "INSERT INTO records (identifier, catalog, catalogentry, collection, title, description, location, duration) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s )"
-			c.execute(query, (identifier,self.config["configuration"],video["id"],collection,video["title"],video["description"],video["location"],video["duration"]))
-			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,setspec,timestamp))
-		
+			query = "INSERT INTO oairecords (identifier,original_id,collection_id,setspec,updated,lom,oaidc) VALUES ( %s, %s, %s, %s, %s, %s, %s )"
+			c.execute(query, (identifier,record["original_id"],self.config["collection_id"],setspec,timestamp,lom,oaidc))
+
 		self.DB.commit()
 
 
-	def updateCollectionTimestamp(self,configuration,collection):
-		d = datetime.utcnow()
-		timestamp = d.strftime('%Y-%m-%dT%H:%M:%SZ')
-		
+	def updateCollectionTimestamp(self,configuration,):
+		timestamp = int(time())
 		c = self.DB.cursor()
-		query = "UPDATE collections SET updated = %s WHERE configuration = %s AND collection = %s"
-		c.execute(query, (timestamp,configuration,collection))
+		query = "UPDATE collections SET updated = %s WHERE configuration = %s"
+		c.execute(query, (timestamp,configuration))
+		self.DB.commit()
