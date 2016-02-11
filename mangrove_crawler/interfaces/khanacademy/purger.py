@@ -2,16 +2,14 @@
 
 from mangrove_crawler.interfaces.youtube.common import getVideoAvailableStatus
 from mangrove_crawler.common import getHttplib2Proxy, getLogger
-import MySQLdb
-import MySQLdb.cursors
-from time import sleep, time
+from storage.mysql import Database
+from time import sleep
 
 
 class Purger:
 	def __init__(self,config):
 		self.config = config
-		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
-		self.DB.set_character_set('utf8')
+		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"],config["configuration"])
 		self.httpProxy=None
 		self.logger = getLogger('khanacademy purger')
 
@@ -21,16 +19,11 @@ class Purger:
 
 	# keeping method and part for now, for backwards compatibility with youtube
 	def purge(self,method="",part=None):
-		c = self.DB.cursor()
-		
 		self.logger.info("Purging all khanacademy video's that are not available.")
-		query = "SELECT identifier,original_id FROM oairecords WHERE deleted = 0"
-		c.execute(query)
 
-		for row in c.fetchall():
-			timestamp = int(time())
+		for row in self.DB.getUndeleted():
 			if not getVideoAvailableStatus(self.httpProxy,self.config["developer_key"],row["original_id"]):
 				self.logger.info("purging: " + row["identifier"])
-				c.execute("""UPDATE oairecords SET updated=%s, deleted=1 WHERE identifier=%s""", (timestamp,row["identifier"]))
+				self.DB.deleteRecord(row["identifier"])
 			
 			sleep(1)

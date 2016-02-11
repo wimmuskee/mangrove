@@ -3,21 +3,17 @@ from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 from formatter.skos import makeSKOS
 from mangrove_crawler.common import getRequestsProxy, getLogger, getTimestampFromZuluDT, downloadFile
-import MySQLdb
-import MySQLdb.cursors
+from storage.mysql import Database
 import json
 from rdflib.graph import Graph
 from rdflib import URIRef
 from rdflib.namespace import SKOS
-from time import time
-from uuid import uuid4
 
 
 class Harvester:
 	def __init__(self,config):
 		self.config = config
-		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
-		self.DB.set_character_set('utf8')
+		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"],config["configuration"])
 		self.httpProxy=None
 		self.logger = getLogger('khan academy harvester')
 		self.khanhost = "http://www.khanacademy.org/"
@@ -46,15 +42,9 @@ class Harvester:
 		f.close()
 		
 		""" check if dataset is updated """
-		c = self.DB.cursor()
-		query = "SELECT * FROM collections WHERE configuration = \"" + self.config["configuration"] + "\""
-		c.execute(query)
-		row = c.fetchone()
-		self.config["collection_id"] = row["id"]
-		
-		if row["updated"] > getTimestampFromZuluDT(result["creation_date"]):
+		if self.DB.collection_updated > getTimestampFromZuluDT(result["creation_date"]):
 			self.logger.info("upstream data has not been updated, exiting")
-			quit()
+			exit()
 		
 		""" parse all the data """
 		for node in result["children"]:
@@ -66,10 +56,7 @@ class Harvester:
 					self.parseNodeContent(node)
 
 		""" update the collection updated timestamp """
-		timestamp = int(time())
-		query = "UPDATE collections SET updated=%s WHERE id=%s"
-		c.execute(query,(timestamp,row["id"]))
-		self.DB.commit()
+		self.DB.touchCollection()
 
 
 	def parseNodeContent(self,node):
@@ -179,22 +166,13 @@ class Harvester:
 	def storeResults(self,record,setspec):
 		lom = makeLOM(record)
 		oaidc = makeOAIDC(self.getOaidcRecord(record))
-		timestamp = int(time())
-		c = self.DB.cursor()
 
 		""" retrieve by page_id, if exists, update, else insert """
-		query = "SELECT updated FROM oairecords WHERE original_id = \"" + record["original_id"] + "\""
-		c.execute(query)
-		row = c.fetchone()
+		row = self.DB.getUpdatedByOriginalId(record["original_id"])
 		
 		if row:
 			""" update only if actually new """
 			if getTimestampFromZuluDT(record["publishdate"]) > row["updated"]:
-				query = "UPDATE oairecords SET updated=%s, lom=%s, oaidc=%s WHERE original_id=%s"
-				c.execute(query,(timestamp,lom,oaidc,record["original_id"]))
+				self.DB.updateRecord(lom,oaidc,record["original_id"])
 		else:
-			identifier = uuid4()
-			query = "INSERT INTO oairecords (identifier,original_id,collection_id,setspec,updated,lom,oaidc) VALUES ( %s, %s, %s, %s, %s, %s, %s )"
-			c.execute(query, (identifier,record["original_id"],self.config["collection_id"],setspec,timestamp,lom,oaidc))
-
-		self.DB.commit()
+			self.DB.storeRecord(lom,oaidc,setspec,record["original_id"])
