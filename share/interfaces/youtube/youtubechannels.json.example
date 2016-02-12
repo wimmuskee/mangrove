@@ -1,0 +1,23 @@
+[
+  {
+    "username": "scheikundelessen",
+    "discipline": [
+      {
+        "id": "3aab168a-9b24-4aca-b0f1-4bfb12e7c288",
+        "value": "Scheikunde"
+      }
+    ],
+    "intendedenduserrole": "learner",
+    "keyword": [
+      "scheikunde"
+    ],
+    "language": "nl",
+    "title": "Scheikundelessen",
+    "learningresourcetype": "informatiebron",
+    "context": [
+      "VO"
+    ],
+    "youtube_id": "UCL0b6TihyRbAuGUGn6kB_xA",
+    "setspec": "ftc"
+  }
+]
