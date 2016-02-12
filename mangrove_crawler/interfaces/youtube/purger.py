@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
-
-import common
+from common import getVideoAvailableStatus
 from mangrove_crawler.common import getHttplib2Proxy, getLogger
-import MySQLdb
-from time import sleep, time
+from storage.mysql import Database
+from time import sleep
 
 
 class Purger:
 	def __init__(self,config):
 		self.config = config
-		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
-		self.DB.set_character_set('utf8')
+		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"],config["configuration"])
 		self.httpProxy=None
 		self.logger = getLogger('youtube purger')
 
@@ -19,59 +17,11 @@ class Purger:
 
 
 	def purge(self,method="",part=None):
-		if method == "sync":
-			self.sync()
-		if method == "channel":
-			self.channel(part)
-		if method == "file":
-			self.logger.info("not working atm")
-		if method == "record_id":
-			self.logger.info("not working atm")
-
-
-	def sync(self):
-		timestamp = int(time())
-		c = self.DB.cursor()
-		
 		self.logger.info("Purging all youtube video's that are not available.")
-		query = "SELECT identifier,youtube_id FROM videos WHERE available = 1"
-		c.execute(query)
-
-		for row in c.fetchall():
-			identifier = row[0]
-			if not common.getVideoAvailableStatus(self.httpProxy,self.config["developer_key"],row[1]):
-				self.logger.info("purging: " + identifier)
-				c.execute("""UPDATE videos SET available=0 WHERE identifier=%s""", (identifier,))
-				c.execute("""UPDATE oairecords SET updated=%s, deleted=1 WHERE identifier=%s""", (timestamp,identifier))
-
-			sleep(1)
-
-
-	def channel(self,part):
-		if not part:
-			self.logger.info("part is required for channel purge")
-			quit()
 		
-		timestamp = int(time())
-		c = self.DB.cursor()
-		
-		self.logger.info("Purging all " + part + " youtube video's.")
-		
-		# getting channel_id
-		c.execute("""SELECT youtube_id FROM channels WHERE username = %s""", (part,))
-		row = c.fetchone()
-		if row:
-			channel_id = row[0]
-		else:
-			self.logger.info("Channel not found, exiting")
-			quit()
-		
-		# get channel records
-		c.execute("""SELECT identifier,youtube_id FROM videos WHERE available = 1 and channel_id = %s""", (channel_id,))
-		
-		for row in c.fetchall():
-			identifier = row[0]
-			self.logger.info("purging: " + identifier)
-			c.execute("""UPDATE videos SET available=0 WHERE identifier=%s""", (identifier,))
-			c.execute("""UPDATE oairecords SET updated=%s, deleted=1 WHERE identifier=%s""", (timestamp,identifier))
+		for row in self.DB.getUndeleted():
+			if not getVideoAvailableStatus(self.httpProxy,self.config["developer_key"],row["original_id"]):
+				self.logger.info("purging: " + row["identifier"])
+				self.DB.deleteRecord(row["identifier"])
+			
 			sleep(1)

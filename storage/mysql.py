@@ -61,9 +61,10 @@ class Database:
 		self.DB.commit()
 
 
-	def touchCollection(self):
+	def touchCollection(self,timestamp=None):
 		c = self.DB.cursor()
-		timestamp = int(time())
+		if not timestamp:
+			timestamp = int(time())
 		query = "UPDATE collections SET updated=%s WHERE id=%s"
 		c.execute(query,(timestamp,self.collection_id))
 		self.DB.commit()

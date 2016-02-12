@@ -84,7 +84,7 @@ def makeLOM(lomdict):
 
 	if lomdict["author"]:
 		for author in lomdict["author"]:
-			lifecycle.append(makeContribute("author",author))
+			lifecycle.append(makeContributeNew("author",makeVcard(author)))
 
 	if lomdict["format"]:
 		technical.append(makeElement("format",lomdict["format"]))
@@ -174,6 +174,30 @@ def makeContribute(role,entry,date=""):
 		d.append(dt)
 		e.append(d)
 	return e
+
+def makeContributeNew(role,vcard,date=""):
+	e = etree.Element(xmlns + "contribute")
+	e.append(makeVocab("role",role))
+	entity = etree.Element(xmlns + "centity")
+	ventity = etree.Element(xmlns + "vcard")
+	ventity.text = vcard
+	entity.append(ventity)
+	e.append(entity)
+	if date:
+		d = etree.Element(xmlns + "date")
+		dt = etree.Element(xmlns + "datetime")
+		dt.text = date
+		d.append(dt)
+		e.append(d)
+	return e
+
+def makeVcard(entry):
+	vcard = u"BEGIN:VCARD\u000AVERSION:3.0\u000A"
+	vcard = vcard + u"FN:" + entry["fn"] + u"\u000A"
+	if "url" in entry:
+		vcard = vcard + u"URL:" + entry["url"] + u"\u000A"
+	vcard = vcard + u"END:VCARD"
+	return vcard
 
 def makeDuration(element,value):
 	e = etree.Element(xmlns + element)

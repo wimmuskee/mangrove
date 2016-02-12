@@ -1,19 +1,17 @@
 # -*- coding: utf-8 -*-
-
 import common
 from mangrove_crawler.common import getHttplib2Proxy, getLogger
-from json import dumps
-import MySQLdb
+import json
+from storage.mysql import Database
 from time import sleep, time
-from uuid import uuid4
-from datetime import datetime
-import pytz
+from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
+from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
+
 
 class Harvester:
 	def __init__(self,config):
 		self.config = config
-		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1)
-		self.DB.set_character_set('utf8')
+		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"],config["configuration"])
 		self.httpProxy=None
 		self.logger = getLogger('youtube harvester')
 
@@ -21,68 +19,89 @@ class Harvester:
 			self.httpProxy = getHttplib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
 
 
-	def harvest(self,channel=""):
-		c = self.DB.cursor()
-
-		if channel:
-			self.logger.info("harvesting " + channel)
-			query = "SELECT youtube_id,updated,setspec FROM channels WHERE username = %s"
-			c.execute(query, (channel))
-			row = c.fetchone()
-			if row:
-				self.getPage(row[0],row[1],row[2])
-				self.updateChannelTimestamp(row[0])
-			else:
-				print "Channel: " + channel + " not found. Add the following:"
-				info = common.getChannelInfo(self.httpProxy,self.config["developer_key"],channel)
-				print dumps(info, indent=4)
-		else:
-			self.logger.info("Harvesting all channels")
-			query = "SELECT youtube_id,updated,setspec FROM channels;"
-			c.execute(query)
-			for row in c.fetchall():
-				self.getPage(row[0],row[1],row[2],"")
-				self.updateChannelTimestamp(row[0])
+	def harvest(self,part=None):
+		self.logger.info("Harvesting all channels")
+		startts = int(time)
+		f = open("youtubechannels.json", 'r')
+		channels = json.loads(f.read() )
+		f.close()
+		
+		for channel in channels:
+			self.getPage(channel,"")
+		
+		self.DB.touchCollection(startts)
 
 
-	def getPage(self,channel_id,fromts,setspec,token=""):
-		result = common.getChannelPage(self.httpProxy,self.config["developer_key"],channel_id,fromts,token)
+	def getPage(self,channel,token=""):
+		result = common.getChannelPage(self.httpProxy,self.config["developer_key"],channel["youtube_id"],self.DB.collection_updated,token)
 		
 		for vid in result["videos"].keys():
-			print dumps(result["videos"][vid],4)
-			print(setspec)
-			self.storeResult(result["videos"][vid],setspec)
+			video = result["videos"][vid]
+			self.logger.debug(video["youtube_id"] + " - " + video["title"])
+			r = self.getDefaultLomRecord()
+			r["original_id"] = video["youtube_id"]
+			r["identifier"].append( { "catalog": "YouTube", "value": video["youtube_id"] } )
+			r["identifier"].append( { "catalog": "URI", "value": "http://youtu.be/" + video["youtube_id"] } )
+			r["title"] = video["title"]
+			r["description"] = video["description"]
+			r["keywords"] = channel["keyword"]
+			r["language"] = channel["language"]
+			r["metalanguage"] = channel["language"]
+			r["location"] = "http://youtu.be/" + video["youtube_id"]
+			r["publishdate"] = video["publishdate"]
+			r["author"].append( { "fn": channel["title"], "url": "http://www.youtube.com/user/" + channel["username"] } )
+			r["duration"] = formatDurationFromSeconds(video["duration"])
+			r["context"] = channel["context"]
+			r["learningresourcetype"] = channel["learningresourcetype"]
+			r["intendedenduserrole"] = channel["intendedenduserrole"]
+			if video["license"] == "creativeCommon":
+				r["copyright"] = "cc-by-30"
+			elif video["license"] == "youtube":
+				r["copyright"] = "Standaard YouTube licentie: http://www.youtube.com/t/terms"
+			if video["embed"]:
+				r["embed"] = "http://www.youtube.com/embed/" + video["youtube_id"]
+			r["thumbnail"] = video["thumbnail"]
+			if channel["discipline"]:
+				r["discipline"].append([channel["discipline"]])
+			
+			self.storeResult(r,channel["setspec"])
 		
 		if result["meta"]["token"]:
 			sleep(5)
-			self.getPage(channel_id,fromts,setspec,result["meta"]["token"])
+			self.getPage(channel,result["meta"]["token"])
 
 
-	def storeResult(self,video,setspec):
-		timestamp = int(time())
-		c = self.DB.cursor()
-		
+	def getDefaultLomRecord(self):
+		r = getEmptyLomDict()
+		r["publisher"] = "YouTube"
+		r["cost"] = "no"
+		r["format"] = "video/x-flv"
+		r["aggregationlevel"] = "2"
+		r["publishdate"] = "1970-01-01T00:00:00Z"
+		return r
+
+
+	def getOaidcRecord(self,record):
+		r = getEmptyOaidcDict()
+		r["title"] = record["title"]
+		r["description"] = record["description"]
+		r["subject"] = record["keywords"]
+		r["publisher"] = record["publisher"]
+		r["format"] = record["format"]
+		r["identifier"] = record["location"]
+		r["language"] = record["language"]
+		r["rights"] = record["copyright"]
+		return r
+
+
+	def storeResult(self,record,setspec):
+		lom = makeLOM(record)
+		oaidc = makeOAIDC(self.getOaidcRecord(record))
+
 		""" retrieve by page_id, if exists, update, else insert """
-		query = "SELECT * FROM videos WHERE youtube_id = %s"
-		c.execute(query, (video["youtube_id"]))
-		row = c.fetchone()
+		row = self.DB.getUpdatedByOriginalId(record["original_id"])
 		
 		if row:
-			identifier = row[0]
-			query = "UPDATE videos SET title=%s, description=%s, duration=%s, license=%s, thumbnail=%s, embed=%s, publishdate=%s, channel_id=%s WHERE youtube_id = %s"
-			c.execute(query, (video["title"],video["description"],video["duration"],video["license"],video["thumbnail"],video["embed"],video["publishdate"],video["channel_id"],video["youtube_id"]))
-			c.execute("""UPDATE oairecords SET updated=%s WHERE identifier=%s""", (timestamp,identifier))
+			self.DB.updateRecord(lom,oaidc,record["original_id"])
 		else:
-			identifier = uuid4()
-			query = "INSERT INTO videos (identifier, youtube_id, title, description, duration, license, thumbnail, embed, publishdate, channel_id) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
-			c.execute(query, (identifier,video["youtube_id"],video["title"],video["description"],video["duration"],video["license"],video["thumbnail"],video["embed"],video["publishdate"],video["channel_id"]) )
-			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,setspec,timestamp))
-
-
-	def updateChannelTimestamp(self,channel_id):
-		d = datetime.utcnow()
-		timestamp = d.strftime('%Y-%m-%dT%H:%M:%SZ')
-		
-		c = self.DB.cursor()
-		query = "UPDATE channels SET updated = %s WHERE youtube_id = %s"
-		c.execute(query, (timestamp,channel_id))
+			self.DB.storeRecord(lom,oaidc,setspec,record["original_id"])

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-
 from apiclient.discovery import build
 from aniso8601 import parse_duration
+from datetime import datetime
 
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
@@ -10,12 +10,13 @@ MAXRESULTS = 10
 def getChannelPage(httpProxy,developer_key,channel_id,fromts,token=""):
 	# https://developers.google.com/youtube/v3/docs/search/list
 	youtube = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=developer_key, http=httpProxy)
+	fromdt = datetime.utcfromtimestamp(fromts).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 	response = youtube.search().list(
 		channelId=channel_id,
 		part="id,snippet",
 		pageToken=token,
-		publishedAfter=fromts,
+		publishedAfter=fromdt,
 		maxResults=MAXRESULTS
 	).execute()
 

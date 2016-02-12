@@ -17,10 +17,11 @@ work_dir=/opt/Wikipedia
 
 [youtube]
 module=youtube
+configuration=youtube
 db_host=localhost
 db_user=root
 db_passwd=*******
-db_name=youtubelom
+db_name=mangrove
 proxy_use=false
 developer_key=****
 
