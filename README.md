@@ -15,14 +15,16 @@ Dependencies listed for each interface. Currently tested for Python 2.7.
 - [requests](http://python-requests.org)
 
 ## youtube ##
+- [lxml] (http://lxml.de/)
 - [google-api-python-client](http://code.google.com/p/google-api-python-client/)
-- [pytz](http://pythonhosted.org/pytz/)
 - [socksipy](http://socksipy.sourceforge.net) for httplib2 proxy
+- [prettytable](https://code.google.com/p/prettytable/) for reporter
 
 ## khanacademy ##
 - [lxml] (http://lxml.de/)
 - [requests](http://python-requests.org)
 - [RDFLib] (https://github.com/RDFLib/rdflib)
+- [google-api-python-client](http://code.google.com/p/google-api-python-client/) for purger
 
 
 # usage #
@@ -61,3 +63,4 @@ The following things to do for a 1.0
 - [ ] setup.py
 - [ ] debug output optional
 - [ ] oaiprovider/uniform database solution for metadata storage
+- [ ] fix reporter, for generic data storage
