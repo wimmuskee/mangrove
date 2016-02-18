@@ -12,6 +12,8 @@ class Reporter:
 
 
 	def report(self,report):
+		print("reporter is not working anymore")
+		exit()
 		if report == "deadlinks":
 			self.deadlinks()
 
