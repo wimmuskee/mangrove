@@ -21,7 +21,7 @@ class Harvester:
 
 	def harvest(self,part=None):
 		self.logger.info("Harvesting all channels")
-		startts = int(time)
+		startts = int(time())
 		f = open("youtubechannels.json", 'r')
 		channels = json.loads(f.read() )
 		f.close()
