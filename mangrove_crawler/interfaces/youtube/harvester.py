@@ -104,4 +104,4 @@ class Harvester:
 		if row:
 			self.DB.updateRecord(lom,oaidc,record["original_id"])
 		else:
-			self.DB.storeRecord(lom,oaidc,setspec,record["original_id"])
+			self.DB.insertRecord(lom,oaidc,setspec,record["original_id"])
