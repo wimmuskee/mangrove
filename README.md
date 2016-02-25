@@ -26,6 +26,9 @@ Dependencies listed for each interface. Currently tested for Python 2.7.
 - [RDFLib] (https://github.com/RDFLib/rdflib)
 - [google-api-python-client](http://code.google.com/p/google-api-python-client/) for purger
 
+# architecture #
+Data can be gathered through different supported interfaces. An interface, or *module*, can be configured with a specific *configuration*. For example, multiple Wikipedia instances can be harvested with a single Mediawiki module and different configurations.
+The module can be generic, while the config file contains the specific configurations for that module.
 
 # usage #
 The mangrove-crawler start harvesting a source by providing:
@@ -33,7 +36,8 @@ The mangrove-crawler start harvesting a source by providing:
 ./mangrove-crawler.py -s <source>
 ```
 
-Sources can be defined in the config file as sections. Here's an example for source "wikipedia_nl" with comments:
+Sources can be defined in the config file as sections. The source is equal to the config section header, and the configuration part needs to correspond to the collection name in the collections database table. Usually, the section header is equal to the collection name.
+Here's an example for source "wikipedia_nl" with comments:
 ```Ini
 [common]
 # common configuration to be used by all sources
@@ -58,9 +62,11 @@ proxy_use=false
 work_dir=/opt/Wikipedia
 ```
 
-## roadmap ##
+# roadmap #
 The following things to do for a 1.0
 - [ ] setup.py
 - [ ] debug output optional
 - [ ] oaiprovider/uniform database solution for metadata storage
 - [ ] fix reporter, for generic data storage
+- [ ] command for new source, generating config file, and database entry
+- [ ] update wikipedia to new database solution
