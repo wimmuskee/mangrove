@@ -2,6 +2,10 @@
 # use ip adress when using proxy for youtube
 proxy_host=123.123.23.23
 proxy_port=3128
+db_host=localhost
+db_user=root
+db_passwd=*******
+db_name=mangrove
 
 [wikipedia_nl]
 module=mediawiki
@@ -18,20 +22,13 @@ work_dir=/opt/Wikipedia
 [youtube]
 module=youtube
 configuration=youtube
-db_host=localhost
-db_user=root
-db_passwd=*******
-db_name=mangrove
+
 proxy_use=false
 developer_key=****
 
 [khanacademy]
 module=khanacademy
 configuration=khanacademy
-db_host=localhost
-db_user=root
-db_passwd=*******
-db_name=mangrove
 proxy_use=false
 work_dir=/opt/khanacademy
 developer_key=****
