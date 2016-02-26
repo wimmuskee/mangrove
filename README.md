@@ -7,6 +7,7 @@ Dependencies listed for each interface. Currently tested for Python 2.7.
 ## generic ##
 - [MySQLdb](http://sourceforge.net/projects/mysql-python/)
 - [configparser] (https://pypi.python.org/pypi/configparser/)
+- [prettytable](https://code.google.com/p/prettytable/) for admin
 
 ## mediawiki ##
 - [NLTK](http://nltk.org/) with stopwords and punkt tokenizer
@@ -18,7 +19,6 @@ Dependencies listed for each interface. Currently tested for Python 2.7.
 - [lxml] (http://lxml.de/)
 - [google-api-python-client](http://code.google.com/p/google-api-python-client/)
 - [socksipy](http://socksipy.sourceforge.net) for httplib2 proxy
-- [prettytable](https://code.google.com/p/prettytable/) for reporter
 
 ## khanacademy ##
 - [lxml] (http://lxml.de/)

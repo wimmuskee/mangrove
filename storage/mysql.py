@@ -7,10 +7,11 @@ from uuid import uuid4
 
 
 class Database:
-	def __init__(self,db_host,db_user,db_passwd,db_name,collection):
+	def __init__(self,db_host,db_user,db_passwd,db_name,collection=None):
 		self.DB = MySQLdb.connect(host=db_host,user=db_user, passwd=db_passwd,db=db_name,use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
 		self.DB.set_character_set('utf8')
-		self.setCollectionInfo(collection)
+		if collection:
+			self.setCollectionInfo(collection)
 
 
 	def setCollectionInfo(self,collection):
@@ -33,6 +34,20 @@ class Database:
 		c = self.DB.cursor()
 		query = "SELECT updated FROM oairecords WHERE original_id = %s"
 		c.execute(query, (original_id,))
+		return c.fetchone()
+
+
+	def getRecordByIdentifier(self,identifier):
+		c = self.DB.cursor()
+		query = "SELECT * FROM oairecords WHERE identifier = %s"
+		c.execute(query, (identifier,))
+		return c.fetchone()
+
+
+	def getRecordById(self,id):
+		c = self.DB.cursor()
+		query = "SELECT * FROM oairecords WHERE counter = %s"
+		c.execute(query, (id,))
 		return c.fetchone()
 
 
@@ -68,3 +83,10 @@ class Database:
 		query = "UPDATE collections SET updated=%s WHERE id=%s"
 		c.execute(query,(timestamp,self.collection_id))
 		self.DB.commit()
+
+
+	def getCollections(self):
+		c = self.DB.cursor()
+		query = "SELECT * FROM collections"
+		c.execute(query)
+		return c.fetchall()
