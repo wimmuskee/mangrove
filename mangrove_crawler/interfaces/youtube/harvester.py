@@ -1,22 +1,18 @@
 # -*- coding: utf-8 -*-
 import common
-from mangrove_crawler.common import getHttplib2Proxy, getLogger
+from mangrove_crawler.interface import Interface
 import json
-from storage.mysql import Database
 from time import sleep, time
 from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 
 
-class Harvester:
-	def __init__(self,config):
-		self.config = config
-		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"],config["configuration"])
-		self.httpProxy=None
-		self.logger = getLogger('youtube harvester')
+class Harvester(Interface):
+	"""youtube harvester"""
 
-		if self.config["proxy_host"] and self.config["proxy_use"]:
-			self.httpProxy = getHttplib2Proxy(self.config["proxy_host"],self.config["proxy_port"])
+	def __init__(self,config):
+		Interface.__init__(self, config)
+		Interface.handleHttplib2Proxy(self)
 
 
 	def harvest(self,part=None):

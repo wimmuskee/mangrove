@@ -2,20 +2,21 @@
 from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 from formatter.skos import makeSKOS
-from mangrove_crawler.common import getRequestsProxy, getLogger, getTimestampFromZuluDT, downloadFile
-from storage.mysql import Database
+from mangrove_crawler.interface import Interface
+from mangrove_crawler.common import getTimestampFromZuluDT, downloadFile
 import json
 from rdflib.graph import Graph
 from rdflib import URIRef
 from rdflib.namespace import SKOS
 
 
-class Harvester:
+class Harvester(Interface):
+	"""khan academy harvester"""
+	
 	def __init__(self,config):
-		self.config = config
-		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"],config["configuration"])
-		self.httpProxy=None
-		self.logger = getLogger('khan academy harvester')
+		Interface.__init__(self, config)
+		Interface.handleRequestsProxy(self)
+
 		self.khanhost = "http://www.khanacademy.org/"
 		self.currenttopic = ""
 		self.topicscheme = { "identifier": self.khanhost + "library", "topconcepts": set() }
@@ -28,9 +29,6 @@ class Harvester:
 		
 		self.obkgraph = Graph()
 		self.obkgraph.parse(self.config["work_dir"] + "/obk-skos.xml", format="xml")
-
-		if self.config["proxy_host"] and self.config["proxy_use"]:
-			self.httpProxy = getRequestsProxy(self.config["proxy_host"],self.config["proxy_port"])
 
 
 	def harvest(self,part=""):
