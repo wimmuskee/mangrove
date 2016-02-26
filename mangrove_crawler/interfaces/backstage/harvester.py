@@ -9,42 +9,32 @@
 # collections have records
 
 import common
-from mangrove_crawler.common import getRequestsProxy, getLogger
+from mangrove_crawler.interface import Interface
 from formatter.nllom import makeLOM, getEmptyLomDict
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
-import MySQLdb
-import MySQLdb.cursors
 from time import sleep, time
-from uuid import uuid4
 from datetime import datetime
 
 
-class Harvester:
-	def __init__(self,config):
-		self.config = config
-		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
-		self.DB.set_character_set('utf8')
-		self.httpProxy=None
-		self.logger = getLogger('backstage harvester')
+class Harvester(Interface):
+	"""backstage harvester"""
 
-		if self.config["proxy_host"] and self.config["proxy_use"]:
-			self.httpProxy = getRequestsProxy(self.config["proxy_host"],self.config["proxy_port"])
+	def __init__(self,config):
+		Interface.__init__(self, config)
+		Interface.handleRequestsProxy(self)
 
 
 	def harvest(self,collection=""):
-		c = self.DB.cursor()
-		query = "SELECT * FROM collections WHERE configuration = %s"
-		c.execute(query, (self.config["configuration"],))
-		row = c.fetchone()
-		fromdate = datetime.fromtimestamp(int(row["updated"])).strftime('%Y-%m-%d')
-		self.config["collection_id"] = row["id"]
-		
-		self.getPage(self.config["configuration"],fromdate)
-		self.updateCollectionTimestamp(self.config["configuration"])
+		self.logger.info("Starting harvesting")
+		startts = int(time())
+		fromdate = datetime.fromtimestamp(int(self.DB.collection_updated)).strftime('%Y-%m-%d')
+
+		self.getPage(fromdate)
+		self.DB.touchCollection(startts)
 
 
-	def getPage(self,collection,fromdate,token=0):
-		result = common.getResultPage(self.httpProxy,collection,fromdate,token)
+	def getPage(self,fromdate,token=0):
+		result = common.getResultPage(self.httpProxy,self.config["configuration"],fromdate,token)
 
 		for video_id in result["videos"].keys():
 			v = result["videos"][video_id]
@@ -68,7 +58,7 @@ class Harvester:
 		if result["meta"]["token"] < result["meta"]["total"]:
 			self.logger.debug( "token = " + str(result["meta"]["token"]) + ", total = " + str(result["meta"]["total"]) )
 			sleep(5)
-			self.getPage(collection,fromdate,result["meta"]["token"])
+			self.getPage(fromdate,result["meta"]["token"])
 
 
 	def getDefaultRecord(self):
@@ -97,28 +87,11 @@ class Harvester:
 	def storeResult(self,record,setspec):
 		lom = makeLOM(record)
 		oaidc = makeOAIDC(self.getOaidcRecord(record))
-		timestamp = int(time())
-		c = self.DB.cursor()
-		
+
 		""" retrieve by page_id, if exists, update, else insert """
-		query = "SELECT updated FROM oairecords WHERE original_id = \"" + record["original_id"] + "\""
-		c.execute(query)
-		row = c.fetchone()
-		
+		row = self.DB.getUpdatedByOriginalId(record["original_id"])
+
 		if row:
-			query = "UPDATE oairecords SET updated=%s, lom=%s, oaidc=%s WHERE original_id=%s"
-			c.execute(query,(timestamp,lom,oaidc,record["original_id"]))
+			self.DB.updateRecord(lom,oaidc,record["original_id"])
 		else:
-			identifier = uuid4()
-			query = "INSERT INTO oairecords (identifier,original_id,collection_id,setspec,updated,lom,oaidc) VALUES ( %s, %s, %s, %s, %s, %s, %s )"
-			c.execute(query, (identifier,record["original_id"],self.config["collection_id"],setspec,timestamp,lom,oaidc))
-
-		self.DB.commit()
-
-
-	def updateCollectionTimestamp(self,configuration,):
-		timestamp = int(time())
-		c = self.DB.cursor()
-		query = "UPDATE collections SET updated = %s WHERE configuration = %s"
-		c.execute(query, (timestamp,configuration))
-		self.DB.commit()
+			self.DB.insertRecord(lom,oaidc,setspec,record["original_id"])
