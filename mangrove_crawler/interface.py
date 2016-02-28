@@ -2,6 +2,8 @@
 
 from storage.mysql import Database
 from mangrove_crawler.common import getLogger, getRequestsProxy, getHttplib2Proxy
+from time import time
+
 
 class Interface:
 	def __init__(self,config):
@@ -9,6 +11,7 @@ class Interface:
 		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"],config["configuration"])
 		self.httpProxy=None
 		self.logger = getLogger(self.__doc__)
+		self.startts = int(time())
 
 
 	def handleRequestsProxy(self):

@@ -12,7 +12,7 @@ import common
 from mangrove_crawler.interface import Interface
 from formatter.nllom import makeLOM, getEmptyLomDict
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
-from time import sleep, time
+from time import sleep
 from datetime import datetime
 
 
@@ -26,11 +26,10 @@ class Harvester(Interface):
 
 	def harvest(self,collection=""):
 		self.logger.info("Starting harvesting")
-		startts = int(time())
 		fromdate = datetime.fromtimestamp(int(self.DB.collection_updated)).strftime('%Y-%m-%d')
 
 		self.getPage(fromdate)
-		self.DB.touchCollection(startts)
+		self.DB.touchCollection(self.startts)
 
 
 	def getPage(self,fromdate,token=0):

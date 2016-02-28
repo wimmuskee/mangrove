@@ -54,7 +54,7 @@ class Harvester(Interface):
 					self.parseNodeContent(node)
 
 		""" update the collection updated timestamp """
-		self.DB.touchCollection()
+		self.DB.touchCollection(self.startts)
 
 
 	def parseNodeContent(self,node):

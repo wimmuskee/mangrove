@@ -2,7 +2,7 @@
 import common
 from mangrove_crawler.interface import Interface
 import json
-from time import sleep, time
+from time import sleep
 from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 
@@ -17,7 +17,6 @@ class Harvester(Interface):
 
 	def harvest(self,part=None):
 		self.logger.info("Harvesting all channels")
-		startts = int(time())
 		f = open("youtubechannels.json", 'r')
 		channels = json.loads(f.read() )
 		f.close()
@@ -25,7 +24,7 @@ class Harvester(Interface):
 		for channel in channels:
 			self.getPage(channel,"")
 		
-		self.DB.touchCollection(startts)
+		self.DB.touchCollection(self.startts)
 
 
 	def getPage(self,channel,token=""):
