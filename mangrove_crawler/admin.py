@@ -20,7 +20,31 @@ class Admin:
 		print(x)
 
 
-	def getRecord(self,recordid):
+	def addCollection(self,collection):
+		if not self.DB.checkCollectionName(collection):
+			print("not exists")
+		else:
+			print("collection name exists: " + collection)
+			exit()
+		
+
+	def getRecord(self,recordid,field):
+		r = self.getRecordByInput(recordid)
+		
+		if field:
+			print(r[field])
+		else:
+			x = prettytable.PrettyTable(["id", "identifier", "original_id", "setspec", "collection_id", "deleted", "updated"])
+			x.add_row([r["counter"], r["identifier"], r["original_id"], r["setspec"], r["collection_id"],r["deleted"], r["updated"]])
+			print(x)
+
+
+	def deleteRecord(self,recordid):
+		r = self.getRecordByInput(recordid)
+		self.DB.deleteRecord(r["identifier"])
+
+
+	def getRecordByInput(self,recordid):
 		# first determine id or identifier 
 		re_number = re.compile('[0-9]+')
 		re_uuid = re.compile('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
@@ -32,7 +56,5 @@ class Admin:
 		else:
 			print("cannot locate record, use id or identifier: " + recordid)
 			exit()
-		
-		x = prettytable.PrettyTable(["id", "identifier", "original_id", "setspec", "collection_id", "deleted", "updated"])
-		x.add_row([r["counter"], r["identifier"], r["original_id"], r["setspec"], r["collection_id"],r["deleted"], r["updated"]])
-		print(x)
+			
+		return r

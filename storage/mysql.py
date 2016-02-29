@@ -90,3 +90,22 @@ class Database:
 		query = "SELECT * FROM collections"
 		c.execute(query)
 		return c.fetchall()
+
+
+	def checkCollectionName(self,collection):
+		c = self.DB.cursor()
+		query = "SELECT * FROM collections WHERE configuration = %s"
+		c.execute(query,(collection,))
+		row = c.fetchone()
+		
+		if row:
+			return True
+		else:
+			return False
+
+
+	def addCollection(self,collection):
+		c = self.DB.cursor()
+		query = "INSERT INTO collections (configuration) VALUES ( %s )"
+		c.execute(query,(collection,))
+		self.DB.commit()
