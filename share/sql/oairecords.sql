@@ -14,3 +14,5 @@ oaidc blob not null);
 alter table oairecords add unique unique_identifier (identifier);
 alter table oairecords add unique original_identifier (original_id);
 alter table oairecords add index index_collectionid (collection_id);
+alter table oairecords add index index_deleted (deleted);
+alter table oairecords add index index_updated (updated);
