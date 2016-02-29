@@ -16,7 +16,14 @@ class Admin:
 		x = prettytable.PrettyTable(["id", "collection", "updated"])
 		for row in collections:
 			x.add_row([row["id"], row["configuration"], row["updated"]])
+		print(x)
 
+
+	def getStats(self):
+		counts = self.DB.getCounts()
+		x = prettytable.PrettyTable(["collection", "deleted", "count"])
+		for row in counts:
+			x.add_row([row["configuration"],row["deleted"],row["count"]])
 		print(x)
 
 

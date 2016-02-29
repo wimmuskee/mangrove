@@ -16,6 +16,8 @@ getrecord.add_argument('-g', '--get', help="get record information", nargs=1, me
 getrecord.add_argument('-f', '--field', help="return xml field", nargs=1, metavar='lom or oaidc', dest='field', choices=['lom','oaidc'])
 delrecord = parser.add_argument_group('record delete')
 delrecord.add_argument('-d', '--delete', help="delete record", nargs=1, metavar='record identifier', dest='delete')
+stats = parser.add_argument_group('statistics')
+stats.add_argument('-s', '--stats', help="record statistics", action="store_true")
 
 
 args = parser.parse_args()
@@ -38,6 +40,8 @@ Admin = admin.Admin(config)
 
 if args.list:
 	Admin.getCollections()
+elif args.stats:
+	Admin.getStats()
 elif args.add:
 	collection = args.add[0]
 	Admin.addCollection(collection)

@@ -107,3 +107,10 @@ class Database:
 		query = "INSERT INTO collections (configuration) VALUES ( %s )"
 		c.execute(query,(collection,))
 		self.DB.commit()
+
+
+	def getCounts(self):
+		c = self.DB.cursor()
+		query = "SELECT configuration, deleted, count(*) AS count FROM oairecords AS oai LEFT JOIN collections AS c ON oai.collection_id = c.id GROUP BY collection_id, deleted"
+		c.execute(query)
+		return c.fetchall()
