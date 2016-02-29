@@ -7,11 +7,9 @@ from uuid import uuid4
 
 
 class Database:
-	def __init__(self,db_host,db_user,db_passwd,db_name,collection=None):
+	def __init__(self,db_host,db_user,db_passwd,db_name):
 		self.DB = MySQLdb.connect(host=db_host,user=db_user, passwd=db_passwd,db=db_name,use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
 		self.DB.set_character_set('utf8')
-		if collection:
-			self.setCollectionInfo(collection)
 
 
 	def setCollectionInfo(self,collection):

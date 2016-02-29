@@ -8,10 +8,11 @@ from time import time
 class Interface:
 	def __init__(self,config):
 		self.config = config
-		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"],config["configuration"])
+		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"])
 		self.httpProxy=None
 		self.logger = getLogger(self.__doc__)
 		self.startts = int(time())
+		self.DB.setCollectionInfo(config["configuration"])
 
 
 	def handleRequestsProxy(self):
