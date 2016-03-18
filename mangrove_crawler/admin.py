@@ -29,7 +29,7 @@ class Admin:
 
 	def addCollection(self,collection):
 		if not self.DB.checkCollectionName(collection):
-			print("not exists")
+			self.DB.addCollection(collection)
 		else:
 			print("collection name exists: " + collection)
 			exit()
