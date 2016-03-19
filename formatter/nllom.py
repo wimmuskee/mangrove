@@ -33,6 +33,7 @@ def getEmptyLomDict():
 		"context": [],
 		"learningresourcetype": "",
 		"intendedenduserrole": "",
+		"typicalagerange": "",
 		"duration": "",
 		"cost": "",
 		"copyright": "",
@@ -52,6 +53,10 @@ def makeLOM(lomdict):
 	educational = etree.Element(xmlns + "educational")
 	rights = etree.Element(xmlns + "rights")
 
+	if lomdict["metalanguage"]:
+		global metalang
+		metalang = lomdict["metalanguage"]
+		
 
 	if lomdict["title"]:
 		general.append(makeLangstring("title", lomdict["title"]))
@@ -98,11 +103,14 @@ def makeLOM(lomdict):
 	if lomdict["learningresourcetype"]:
 		educational.append(makeVocab("learningresourcetype",lomdict["learningresourcetype"]))
 
+	if lomdict["intendedenduserrole"]:
+		educational.append(makeVocab("intendedenduserrole",lomdict["intendedenduserrole"]))
+
 	for c in lomdict["context"]:
 		educational.append(makeVocab("context",c))
 
-	if lomdict["intendedenduserrole"]:
-		educational.append(makeVocab("intendedenduserrole",lomdict["intendedenduserrole"]))
+	if lomdict["typicalagerange"]:
+		educational.append(makeElement("typicalagerange",lomdict["typicalagerange"]))
 
 	if lomdict["cost"]:
 		rights.append(makeVocab("cost", lomdict["cost"]))
@@ -138,9 +146,12 @@ def makeLOM(lomdict):
 	return s
 
 
-def makeLangstring(element,value,lang=metalang):
+def makeLangstring(element,value,language=None):
+	if not language:
+		language = metalang
+
 	e = etree.Element(xmlns + element)
-	lang = etree.Element(xmlns + "langstring", {'{http://www.w3.org/XML/1998/namespace}lang':lang})
+	lang = etree.Element(xmlns + "langstring", {'{http://www.w3.org/XML/1998/namespace}lang':language})
 	lang.text = value
 	e.append(lang)
 	return e
