@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import common
-from mangrove_crawler.textprocessing import getStopwords
+from mangrove_crawler.textprocessing import TextProcessor
 from mangrove_crawler.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy, checkPrograms, getLogger
 import MySQLdb
 import MySQLdb.cursors
@@ -9,9 +9,6 @@ import re
 from bz2 import BZ2File
 from subprocess import Popen, PIPE, call
 from os import walk, path, listdir
-from readability_score.calculators import fleschkincaid
-from collections import defaultdict
-from nltk import tokenize
 from time import time
 from uuid import uuid4
 
@@ -36,7 +33,6 @@ class Harvester:
 			self.share_prefix = "/usr/share/mangrove/interfaces/mediawiki/"
 
 		checkPrograms(["gunzip", "bunzip2", "WikiExtractor.py", "mysql"])
-		self.stopwords = getStopwords(self.httpProxy)
 
 
 	def harvest(self,part=""):
@@ -151,57 +147,33 @@ class Harvester:
 		self.keywords = []
 		self.version = ""
 		self.updated = 0
-		self.text = ""
+		self.min_age = 0 
+		self.sent_count = 0
+		self.word_count = 0
 
 		""" now fill with input """
-		self.text = text
+		textproc = TextProcessor(text,'nl_NL',"kpc")
 		self.page_id = metadata['page_id']
 		self.urltitle = metadata['page_title']
 		self.lastrev_id = metadata['page_latest']
 		self.version = metadata['page_touched'][6:8] + metadata['page_touched'][4:6] + metadata['page_touched'][0:4]
 
-		""" educational metadata """
-		#self.fk = fleschkincaid.FleschKincaid(self.text.encode('utf-8'),'nl_NL')
-		self.fk = fleschkincaid.FleschKincaid(self.text,'nl_NL')
-
-		if self.fk.scores['sent_count'] >= 10 and self.fk.scores['sentlen_average'] < 100:
+		if textproc.calculator.scores['sent_count'] >= 10 and textproc.calculator.scores['sentlen_average'] < 100:
+			lines = textproc.text.split('\n')
+			""" Not taking first line because before each line, a linebreak is inserted. """
+			self.title = lines[1]
+			self.description = self.re_htmltags.sub("",lines[3])
+			
 			self.updated = common.makeTimestamp(metadata['page_touched'])
-			self.setTitleDescription()
-			self.keywordExtract()
+			self.keywords = textproc.getKeywords()
+			self.min_age = int(textproc.calculator.min_age)
+			self.sent_count = textproc.calculator.scores['sent_count']
+			self.word_count = textproc.calculator.scores['word_count']
 
 			#self.printLOM()
 			self.storeResults()
 			#import sys
 			#sys.exit()
-
-
-	def setTitleDescription(self):
-		lines = self.text.split('\n')
-		""" Not taking first line because before each line, a linebreak is inserted. """
-		self.title = lines[1]
-		self.description = self.re_htmltags.sub("",lines[3])
-
-
-	def keywordExtract(self):
-		""" not using work_tokenize because of unicode characters """
-		words = tokenize.wordpunct_tokenize( self.text )
-		filtered_words = [w.lower() for w in words if not w.lower() in self.stopwords]
-		include_threshold = round(self.fk.scores['word_count'] * 0.003)
-
-		""" collect word statistics """
-		counts = defaultdict(int) 
-		for word in filtered_words:
-			if word.isalpha() and len(word) > 1:
-				counts[word] += 1
-
-		""" only most occuring; filter words based on threshhold """
-		keys = defaultdict(int)
-		for word,count in counts.items():
-			if count > include_threshold:
-				keys[word] = count
-
-		keywords = sorted(keys, key=keys.get, reverse=True)
-		self.keywords = keywords[:15]
 
 
 	def storeResults(self):
@@ -216,12 +188,12 @@ class Harvester:
 		if row:
 			identifier = row['identifier']
 			query = "UPDATE " + self.config["setspec"] + " SET title=%s, description=%s, lastrev_id=%s, version=%s, updated=%s, min_age=%s, sentences=%s, words=%s WHERE page_id = %s"
-			c.execute(query, (self.title,self.description,self.lastrev_id,self.version,self.updated,int(self.fk.min_age),self.fk.scores['sent_count'],self.fk.scores['word_count'],self.page_id))
+			c.execute(query, (self.title,self.description,self.lastrev_id,self.version,self.updated,self.min_age,self.sent_count,self.word_count,self.page_id))
 			c.execute("""UPDATE oairecords SET updated=%s,deleted=0 WHERE identifier=%s""", (timestamp,identifier))
 		else:
 			identifier = uuid4()
 			query = "INSERT INTO " + self.config["setspec"] + " (identifier, page_id, title, url_title, description, lastrev_id, version, updated, min_age, sentences, words) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
-			c.execute(query, (identifier,self.page_id,self.title,self.urltitle,self.description,self.lastrev_id,self.version,self.updated,int(self.fk.min_age),self.fk.scores['sent_count'],self.fk.scores['word_count']) )
+			c.execute(query, (identifier,self.page_id,self.title,self.urltitle,self.description,self.lastrev_id,self.version,self.updated,self.min_age,self.sent_count,self.word_count) )
 			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,self.config["setspec"],timestamp))
 
 		c.close()
