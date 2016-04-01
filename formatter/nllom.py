@@ -79,7 +79,7 @@ def makeLOM(lomdict):
 		general.append(makeVocab("aggregationlevel", lomdict["aggregationlevel"]))
 
 	if lomdict["publisher"]:
-		lifecycle.append(makeContribute("publisher",lomdict["publisher"],lomdict["publishdate"]))
+		lifecycle.append(makeContribute("publisher",makeVcard({"fn": lomdict["publisher"]}),lomdict["publishdate"]))
 
 	if lomdict["author"]:
 		for author in lomdict["author"]:
