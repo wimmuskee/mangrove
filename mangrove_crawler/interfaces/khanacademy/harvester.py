@@ -9,6 +9,9 @@ from rdflib.graph import Graph
 from rdflib import URIRef
 from rdflib.namespace import SKOS
 
+# note:
+# to fully refresh this collection, because for instance you have a new mapping
+# you have to reset the collection timestamp, but also the record timestamps
 
 class Harvester(Interface):
 	"""khan academy harvester"""
@@ -34,7 +37,7 @@ class Harvester(Interface):
 	def harvest(self,part=""):
 		""" download the topic tree """
 		self.logger.info("Downloading topictree")
-		downloadFile(self.httpProxy,"http://www.khanacademy.org/api/v1/topictree",self.config["work_dir"] + "/topictree.json")
+		#downloadFile(self.httpProxy,"http://www.khanacademy.org/api/v1/topictree",self.config["work_dir"] + "/topictree.json")
 		f = open(self.config["work_dir"] + "/topictree.json", 'r')
 		result = json.loads(f.read() )
 		f.close()
@@ -81,8 +84,9 @@ class Harvester(Interface):
 				{ "catalog": "Youtube", "value": node["translated_youtube_id"] }, 
 				{ "catalog": "URI", "value": node["ka_url"] }, 
 				{ "catalog": "URI", "value": "http://youtu.be/" + node["translated_youtube_id"] } ]
-			r["author"] = node["author_names"]
 			
+			for author in node["author_names"]:
+				r["author"].append({"fn": author})
 			
 			for o in self.mappinggraph.objects(URIRef(self.currenttopic), SKOS.closeMatch):
 				r["discipline"].append( [ self.findTaxons(list(),o) ] )

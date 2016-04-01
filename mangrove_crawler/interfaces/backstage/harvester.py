@@ -42,7 +42,8 @@ class Harvester(Interface):
 			r["original_id"] = video_id
 			r["title"] = v["item"]["_source"]["title"]
 			r["location"] = v["item"]["_source"]["meta"]["original_object_urls"]["html"]
-			r["author" ] = v["metadata"]["authors"]
+			for author in v["metadata"]["authors"]:
+				r["author"].append({ "fn": author})
 			if "description" in v["item"]["_source"]:
 				r["description"] = v["item"]["_source"]["description"]
 			if "tags" in v["item"]["_source"]:

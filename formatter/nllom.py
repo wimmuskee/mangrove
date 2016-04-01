@@ -81,15 +81,15 @@ def makeLOM(lomdict):
 	if lomdict["publisher"]:
 		lifecycle.append(makeContribute("publisher",lomdict["publisher"],lomdict["publishdate"]))
 
+	if lomdict["author"]:
+		for author in lomdict["author"]:
+			lifecycle.append(makeContribute("author",makeVcard(author)))
+
 	metametadata.append(makeElement("metadatascheme","LOMv1.0"))
 	metametadata.append(makeElement("metadatascheme","nl_lom_v1p0"))
 	
 	if lomdict["metalanguage"]:
 		metametadata.append(makeElement("language", lomdict["metalanguage"]))
-
-	if lomdict["author"]:
-		for author in lomdict["author"]:
-			lifecycle.append(makeContributeNew("author",makeVcard(author)))
 
 	if lomdict["format"]:
 		technical.append(makeElement("format",lomdict["format"]))
@@ -170,23 +170,7 @@ def makeVocab(element,value):
 	e.append(val)
 	return e
 
-def makeContribute(role,entry,date=""):
-	e = etree.Element(xmlns + "contribute")
-	e.append(makeVocab("role",role))
-	entity = etree.Element(xmlns + "centity")
-	ventity = etree.Element(xmlns + "vcard")
-	ventity.text = u"BEGIN:VCARD\u000AVERSION:3.0\u000AFN:" + entry + u"\u000AEND:VCARD"
-	entity.append(ventity)
-	e.append(entity)
-	if date:
-		d = etree.Element(xmlns + "date")
-		dt = etree.Element(xmlns + "datetime")
-		dt.text = date
-		d.append(dt)
-		e.append(d)
-	return e
-
-def makeContributeNew(role,vcard,date=""):
+def makeContribute(role,vcard,date=""):
 	e = etree.Element(xmlns + "contribute")
 	e.append(makeVocab("role",role))
 	entity = etree.Element(xmlns + "centity")
