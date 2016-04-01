@@ -37,7 +37,7 @@ class Harvester(Interface):
 	def harvest(self,part=""):
 		""" download the topic tree """
 		self.logger.info("Downloading topictree")
-		#downloadFile(self.httpProxy,"http://www.khanacademy.org/api/v1/topictree",self.config["work_dir"] + "/topictree.json")
+		downloadFile(self.httpProxy,"http://www.khanacademy.org/api/v1/topictree",self.config["work_dir"] + "/topictree.json")
 		f = open(self.config["work_dir"] + "/topictree.json", 'r')
 		result = json.loads(f.read() )
 		f.close()
@@ -177,4 +177,4 @@ class Harvester(Interface):
 			if getTimestampFromZuluDT(record["publishdate"]) > row["updated"]:
 				self.DB.updateRecord(lom,oaidc,record["original_id"])
 		else:
-			self.DB.storeRecord(lom,oaidc,setspec,record["original_id"])
+			self.DB.insertRecord(lom,oaidc,setspec,record["original_id"])

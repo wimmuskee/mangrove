@@ -54,12 +54,11 @@ if args.source:
 		Harvester = harvester.Harvester(config)
 	except:
 		print("Cannot load module for source: " + source)
-		print "Unexpected error: ", exc_info()[0]
-		print exc_info()[1]
+		print("Unexpected error: ", exc_info()[0])
+		print(exc_info()[1])
 		exit()
 
 	""" starting harvest process """
-	print "Harvesting: " + source
 	Harvester.harvest(part)
 else:
 	parser.error('Input a valid source')
