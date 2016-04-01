@@ -91,6 +91,9 @@ class Harvester(Interface):
 			for o in self.mappinggraph.objects(URIRef(self.currenttopic), SKOS.closeMatch):
 				r["discipline"].append( [ self.findTaxons(list(),o) ] )
 			
+			for o in self.mappinggraph.objects(URIRef(self.currenttopic), SKOS.broadMatch):
+				r["discipline"].append( [ self.findTaxons(list(),o) ] )
+			
 			self.storeResults(r,"video")
 
 		if "children" in node:
