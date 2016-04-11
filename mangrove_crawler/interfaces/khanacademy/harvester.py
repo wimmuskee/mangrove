@@ -159,12 +159,12 @@ class Harvester(Interface):
 		# checks if id is root, or id has multiple parents,
 		# in both cases, add the id, and break
 		if len(list(self.obkgraph.objects(URIRef(obkid), SKOS.broader))) != 1:
-			taxonpath.append( { "id": obkid, "value": str(self.obkgraph.value( URIRef(obkid), SKOS.prefLabel) ) } )
+			taxonpath.append( { "id": obkid[43:], "value": str(self.obkgraph.value( URIRef(obkid), SKOS.prefLabel) ) } )
 			return taxonpath
 		# only when an id has one parent, continue with the function
 		# for the parent id
 		elif len(list(self.obkgraph.objects(URIRef(obkid), SKOS.broader))) == 1:
-			taxonpath.append( { "id": obkid, "value": str(self.obkgraph.value( URIRef(obkid), SKOS.prefLabel) ) } )
+			taxonpath.append( { "id": obkid[43:], "value": str(self.obkgraph.value( URIRef(obkid), SKOS.prefLabel) ) } )
 			return self.findTaxons(taxonpath, str(self.obkgraph.value( URIRef(obkid), SKOS.broader)) )
 
 
