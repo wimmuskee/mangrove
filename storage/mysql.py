@@ -109,8 +109,25 @@ class Database:
 		self.DB.commit()
 
 
+	def getCollectionByName(self,collection):
+		c = self.DB.cursor()
+		query = "SELECT * FROM collections WHERE configuration = %s"
+		c.execute(query,(collection,))
+		return c.fetchone()
+
+
 	def getCounts(self):
 		c = self.DB.cursor()
 		query = "SELECT configuration, deleted, count(*) AS count FROM oairecords AS oai LEFT JOIN collections AS c ON oai.collection_id = c.id GROUP BY collection_id, deleted"
 		c.execute(query)
 		return c.fetchall()
+
+
+	def getRecordsToPush(self,collection_id,last_push_ts):
+		c = self.DB.cursor()
+		ids = []
+		query = "SELECT counter FROM oairecords WHERE collection_id = %s AND updated > %s"
+		c.execute(query,(collection_id,last_push_ts))
+		for row in c.fetchall():
+			ids.append(row["counter"])
+		return ids
