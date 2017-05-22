@@ -15,6 +15,7 @@ def getConfig(configfile,section):
 	Config.read(configfile)
 
 	config_options = {}
+	config_options["collection"] = section
 	options = Config.options(section)
 	for option in options:
 		try:
