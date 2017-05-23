@@ -14,12 +14,10 @@ class Pusher(Interface):
 
 
 	def pushAll(self):
-		collection = self.DB.getCollectionByName(self.config["collection"])
 		recordIds = []
 
-		if collection["updated"] > collection["pushed"]:
-			recordIDs = self.DB.getNewRecords(collection["pushed"])
-
+		if self.DB.collection_updated > self.DB.collection_pushed:
+			recordIDs = self.DB.getNewRecords()
 
 		for record_id in recordIds:
 			record = self.DB.getRecordById(record_id)

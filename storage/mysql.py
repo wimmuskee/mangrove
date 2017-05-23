@@ -19,6 +19,7 @@ class Database:
 		row = c.fetchone()
 		self.collection_id = row["id"]
 		self.collection_updated = row["updated"]
+		self.collection_pushed = row["pushed"]
 
 
 	def getUndeleted(self):
@@ -83,6 +84,15 @@ class Database:
 		self.DB.commit()
 
 
+	def touchCollectionPushed(self,timestamp=None):
+		c = self.DB.cursor()
+		if not timestamp:
+			timestamp = int(time())
+		query = "UPDATE collections SET pushed=%s WHERE id=%s"
+		c.execute(query,(timestamp,self.collection_id))
+		self.DB.commit()
+
+
 	def getCollections(self):
 		c = self.DB.cursor()
 		query = "SELECT * FROM collections"
@@ -109,13 +119,6 @@ class Database:
 		self.DB.commit()
 
 
-	def getCollectionByName(self,collection):
-		c = self.DB.cursor()
-		query = "SELECT * FROM collections WHERE configuration = %s"
-		c.execute(query,(collection,))
-		return c.fetchone()
-
-
 	def getCounts(self):
 		c = self.DB.cursor()
 		query = "SELECT configuration, deleted, count(*) AS count FROM oairecords AS oai LEFT JOIN collections AS c ON oai.collection_id = c.id GROUP BY collection_id, deleted"
@@ -123,11 +126,11 @@ class Database:
 		return c.fetchall()
 
 
-	def getNewRecords(self,collection_id,last_push_ts):
+	def getNewRecords(self):
 		c = self.DB.cursor()
 		ids = []
 		query = "SELECT counter FROM oairecords WHERE collection_id = %s AND updated > %s"
-		c.execute(query,(collection_id,last_push_ts))
+		c.execute(query,(self.collection_id,self.collection_pushed))
 		for row in c.fetchall():
 			ids.append(row["counter"])
 		return ids
