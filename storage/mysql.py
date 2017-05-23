@@ -123,7 +123,7 @@ class Database:
 		return c.fetchall()
 
 
-	def getRecordsToPush(self,collection_id,last_push_ts):
+	def getNewRecords(self,collection_id,last_push_ts):
 		c = self.DB.cursor()
 		ids = []
 		query = "SELECT counter FROM oairecords WHERE collection_id = %s AND updated > %s"
