@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from common import getVideoAvailableStatus
-from mangrove_crawler.interface import Interface
+from mangrove_libs.interface import Interface
 from time import sleep
 
 

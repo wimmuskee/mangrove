@@ -3,7 +3,7 @@
 
 import argparse
 import os.path
-from mangrove_crawler import admin, common
+from mangrove_libs import admin, common
 
 parser = argparse.ArgumentParser(description='Mangrove admin tool.')
 parser.add_argument('-c', '--config', nargs=1, help='config file', metavar='configfile', dest='configfile')

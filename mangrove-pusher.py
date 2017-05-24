@@ -13,7 +13,7 @@ License: GPL-3
 import argparse
 import os.path
 from sys import exit, exc_info
-from mangrove_crawler import common
+from mangrove_libs import common
 
 parser = argparse.ArgumentParser(description='Pusher for the Source to LOM project.')
 parser.add_argument('-s', '--source', nargs=1, help='Data provider', metavar='datasource', dest='source')
@@ -51,7 +51,7 @@ if args.source:
 
 	""" load and start pusher """
 	try:
-		pusher = common.import_from('mangrove_crawler.pusher_interfaces.' + config['pusher_class'], 'pusher')
+		pusher = common.import_from('mangrove_libs.pusher_interfaces.' + config['pusher_class'], 'pusher')
 		Pusher = pusher.Pusher(config)
 	except:
 		print("Cannot load module for source: " + source)

@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mangrove_crawler import common
+from mangrove_libs import common
 
 class InitfunctionsTestCase(TestCase):
 	def test_missing_dependency(self):

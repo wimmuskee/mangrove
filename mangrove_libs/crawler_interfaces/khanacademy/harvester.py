@@ -2,8 +2,8 @@
 from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 from formatter.skos import makeSKOS
-from mangrove_crawler.interface import Interface
-from mangrove_crawler.common import getTimestampFromZuluDT, downloadFile
+from mangrove_libs.interface import Interface
+from mangrove_libs.common import getTimestampFromZuluDT, downloadFile
 import json
 from rdflib.graph import Graph
 from rdflib import URIRef

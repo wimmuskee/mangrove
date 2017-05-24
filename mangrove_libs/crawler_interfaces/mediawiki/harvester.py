@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import common
-from mangrove_crawler.textprocessing import TextProcessor
-from mangrove_crawler.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy, checkPrograms, getLogger
+from mangrove_libs.textprocessing import TextProcessor
+from mangrove_libs.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy, checkPrograms, getLogger
 import MySQLdb
 import MySQLdb.cursors
 import re

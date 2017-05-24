@@ -9,7 +9,7 @@
 # collections have records
 
 import common
-from mangrove_crawler.interface import Interface
+from mangrove_libs.interface import Interface
 from formatter.nllom import makeLOM, getEmptyLomDict
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 from time import sleep

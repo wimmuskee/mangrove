@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import common
-from mangrove_crawler.interface import Interface
+from mangrove_libs.interface import Interface
 import json
 from time import sleep
 from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds

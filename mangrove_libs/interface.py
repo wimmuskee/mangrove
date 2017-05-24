@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from storage.mysql import Database
-from mangrove_crawler.common import getLogger, getRequestsProxy, getHttplib2Proxy
+from mangrove_libs.common import getLogger, getRequestsProxy, getHttplib2Proxy
 from time import time
 
 

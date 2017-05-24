@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from mangrove_crawler.common import getLogger
+from mangrove_libs.common import getLogger
 import MySQLdb
 import MySQLdb.cursors
 from time import time
