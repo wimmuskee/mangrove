@@ -1,5 +1,3 @@
-drop table if exists collections;
-
 create table collections (
 id int(8) not null primary key auto_increment,
 configuration varchar(40) not null,

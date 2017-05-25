@@ -2,3 +2,7 @@
 # use ip adress when using proxy for youtube
 proxy_host=123.123.23.23
 proxy_port=3128
+db_host=localhost
+db_user=test
+db_passwd=
+db_name=test

@@ -134,3 +134,23 @@ class Database:
 		for row in c.fetchall():
 			ids.append(row["counter"])
 		return ids
+
+
+	def initDB(self):
+		with open("share/sql/collections.sql", "r") as f:
+			sqlfile = f.read()
+
+		sqlcommands = sqlfile.split(';')
+		c = self.DB.cursor()
+		for line in sqlcommands:
+			command = line.strip()
+			if command:
+				c.execute(command)
+
+		self.DB.commit()
+
+
+	def cleanupDB(self):
+		c = self.DB.cursor()
+		c.execute("DROP TABLE collections")
+		self.DB.commit()
