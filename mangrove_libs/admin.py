@@ -31,9 +31,8 @@ class Admin:
 		if not self.DB.checkCollectionName(collection):
 			self.DB.addCollection(collection)
 		else:
-			print("collection name exists: " + collection)
-			exit()
-		
+			raise RuntimeError("collection name exists: " + collection)
+
 
 	def getRecord(self,recordid,field):
 		r = self.getRecordByInput(recordid)

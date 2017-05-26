@@ -35,22 +35,24 @@ except:
 	parser.error('No common config defined')
 
 
-Admin = admin.Admin(config)
+try:
+	Admin = admin.Admin(config)
 
-
-if args.list:
-	Admin.getCollections()
-elif args.stats:
-	Admin.getStats()
-elif args.add:
-	collection = args.add[0]
-	Admin.addCollection(collection)
-elif args.get:
-	record = args.get[0]
-	field = None
-	if args.field:
-		field = args.field[0]
-	Admin.getRecord(record,field)
-elif args.delete:
-	record = args.delete[0]
-	Admin.deleteRecord(record)
+	if args.list:
+		Admin.getCollections()
+	elif args.stats:
+		Admin.getStats()
+	elif args.add:
+		collection = args.add[0]
+		Admin.addCollection(collection)
+	elif args.get:
+		record = args.get[0]
+		field = None
+		if args.field:
+			field = args.field[0]
+		Admin.getRecord(record,field)
+	elif args.delete:
+		record = args.delete[0]
+		Admin.deleteRecord(record)
+except Exception as err:
+	print(str(err))
