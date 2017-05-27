@@ -14,12 +14,12 @@ class Database:
 
 	def setCollectionInfo(self,collection):
 		c = self.DB.cursor()
-		query = "SELECT id,updated FROM collections WHERE configuration = %s"
+		query = "SELECT id,updated,pushed FROM collections WHERE configuration = %s"
 		c.execute(query,(collection,))
 		row = c.fetchone()
-		self.collection_id = row["id"]
-		self.collection_updated = row["updated"]
-		self.collection_pushed = row["pushed"]
+		self.collection_id = int(row["id"])
+		self.collection_updated = int(row["updated"])
+		self.collection_pushed = int(row["pushed"])
 
 
 	def getUndeleted(self):
@@ -140,6 +140,7 @@ class Database:
 		self.__executeFile("share/sql/collections.sql")
 		self.__executeFile("share/sql/oairecords.sql")
 		self.__executeFile("share/sql/test_records.sql")
+		self.__executeFile("share/sql/test_collections.sql")
 
 
 	def cleanupDB(self):
