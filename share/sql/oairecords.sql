@@ -1,5 +1,3 @@
-drop table if exists oairecords;
-
 create table oairecords (
 counter int(11) not null primary key auto_increment,
 identifier varchar(36) not null,

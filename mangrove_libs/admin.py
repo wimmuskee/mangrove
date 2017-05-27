@@ -52,15 +52,14 @@ class Admin:
 
 	def getRecordByInput(self,recordid):
 		# first determine id or identifier 
-		re_number = re.compile('[0-9]+')
+		re_number = re.compile('^[0-9]+$')
 		re_uuid = re.compile('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
-		
+
 		if re_number.match(recordid):
 			r = self.DB.getRecordById(recordid)
 		elif re_uuid.match(recordid):
 			r = self.DB.getRecordByIdentifier(recordid)
 		else:
-			print("cannot locate record, use id or identifier: " + recordid)
-			exit()
-			
+			raise RuntimeError("cannot locate record, use id or identifier: " + recordid)
+
 		return r

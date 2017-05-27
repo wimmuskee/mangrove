@@ -137,20 +137,27 @@ class Database:
 
 
 	def initDB(self):
-		with open("share/sql/collections.sql", "r") as f:
-			sqlfile = f.read()
+		self.__executeFile("share/sql/collections.sql")
+		self.__executeFile("share/sql/oairecords.sql")
+		self.__executeFile("share/sql/test_records.sql")
 
-		sqlcommands = sqlfile.split(';')
+
+	def cleanupDB(self):
+		c = self.DB.cursor()
+		c.execute("DROP TABLE collections")
+		c.execute("DROP TABLE oairecords")
+		self.DB.commit()
+
+
+	def __executeFile(self,sqlfile):
+		with open(sqlfile, "r") as f:
+			sql = f.read()
+
+		sqlcommands = sql.split(';')
 		c = self.DB.cursor()
 		for line in sqlcommands:
 			command = line.strip()
 			if command:
 				c.execute(command)
 
-		self.DB.commit()
-
-
-	def cleanupDB(self):
-		c = self.DB.cursor()
-		c.execute("DROP TABLE collections")
 		self.DB.commit()
