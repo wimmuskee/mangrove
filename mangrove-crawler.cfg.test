@@ -6,3 +6,6 @@ db_host=localhost
 db_user=test
 db_passwd=
 db_name=test
+
+[default_collection]
+proxy_use=true
