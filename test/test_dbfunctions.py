@@ -27,3 +27,14 @@ class DbfunctionsTestCase(TestCase):
 		self.DB.setCollectionInfo("default_collection")
 		self.DB.touchCollection(mode="push")
 		self.assertGreaterEqual(self.DB.collection_pushed,int(time()))
+
+	def test_update_record(self):
+		self.DB.updateRecord("","","orig:3")
+		record = self.DB.getRecordById(1)
+		self.assertGreater(record["updated"],1495857873)
+
+	def test_insert_record(self):
+		self.DB.setCollectionInfo("default_collection")
+		self.DB.insertRecord("","","test","orig:4")
+		record = self.DB.getRecordById(2)
+		self.assertEqual(record["original_id"],"orig:4")
