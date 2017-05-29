@@ -27,7 +27,7 @@ class Pusher(Interface):
 			else:
 				self.push(record["identifier"],record["lom"])
 
-		self.DB.touchCollectionPushed(self.startts)
+		self.DB.touchCollection(self.startts,mode="push")
 
 
 	def push(self,identifier,xml):

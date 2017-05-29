@@ -75,20 +75,20 @@ class Database:
 		self.DB.commit()
 
 
-	def touchCollection(self,timestamp=None):
+	def touchCollection(self,timestamp=None,mode="crawl"):
 		c = self.DB.cursor()
 		if not timestamp:
 			timestamp = int(time())
-		query = "UPDATE collections SET updated=%s WHERE id=%s"
-		c.execute(query,(timestamp,self.collection_id))
-		self.DB.commit()
 
+		if mode == "crawl":
+			query = "UPDATE collections SET updated=%s WHERE id=%s"
+			self.collection_updated = timestamp
+		elif mode == "push":
+			query = "UPDATE collections SET pushed=%s WHERE id=%s"
+			self.collection_pushed = timestamp
+		else:
+			raise LookupError("wrong mode: " + mode)
 
-	def touchCollectionPushed(self,timestamp=None):
-		c = self.DB.cursor()
-		if not timestamp:
-			timestamp = int(time())
-		query = "UPDATE collections SET pushed=%s WHERE id=%s"
 		c.execute(query,(timestamp,self.collection_id))
 		self.DB.commit()
 
