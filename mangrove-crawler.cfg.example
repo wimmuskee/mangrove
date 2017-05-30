@@ -8,6 +8,7 @@ db_passwd=*******
 db_name=mangrove
 pusher_class=edurepdelen
 pusher_key=****
+fs_recordbase=/var/mangrove-records
 
 [wikipedia_nl]
 module=mediawiki

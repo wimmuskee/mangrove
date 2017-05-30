@@ -29,6 +29,13 @@ class Filesystem:
 			pass
 
 
+	def removeFile(filename):
+		try:
+			os.remove(filename)
+		except OSError:
+			pass
+
+
 	def makeDir(self,dir):
 		if not os.path.exists(dir):
 			os.makedirs(dir)

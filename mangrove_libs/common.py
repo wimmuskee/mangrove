@@ -3,7 +3,7 @@
 This module contains common functions
 for the mangrove crawler.
 
-Wim Muskee, 2013-2015
+Wim Muskee, 2013-2017
 wimmuskee@gmail.com
 
 License: GPL-3
@@ -15,7 +15,7 @@ def getConfig(configfile,section):
 	Config.read(configfile)
 
 	config_options = {}
-	config_options["collection"] = section
+	config_options["configuration"] = section
 	options = Config.options(section)
 	for option in options:
 		try:
@@ -50,22 +50,6 @@ def downloadFile(httpProxy,source,dest):
 			if chunk: # filter out keep-alive new chunks
 				f.write(chunk)
 				f.flush()
-
-
-def removeFile(filename):
-	from os import remove
-	try:
-		remove(filename)
-	except OSError:
-		pass
-
-
-def removeDir(dirname):
-	from shutil import rmtree
-	try:
-		rmtree(dirname)
-	except:
-		pass
 
 
 def gzUnpack(source,dest):

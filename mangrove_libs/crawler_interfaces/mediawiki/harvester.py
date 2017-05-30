@@ -2,7 +2,8 @@
 
 import common
 from mangrove_libs.textprocessing import TextProcessor
-from mangrove_libs.common import downloadFile, removeFile, removeDir, checkLocal, getRequestsProxy, checkPrograms, getLogger
+from mangrove_libs.common import downloadFile, checkLocal, getRequestsProxy, checkPrograms, getLogger
+from storage.filesystem import Filesystem
 import MySQLdb
 import MySQLdb.cursors
 import re
@@ -17,6 +18,7 @@ class Harvester:
 		self.config = config
 		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
 		self.DB.set_character_set('utf8')
+		self.FS = Filesystem(config)
 		self.httpProxy = None
 		self.config["dest_prefix"] = config["work_dir"] + "/" + config["wiki"] + "-"
 		self.re_docid = re.compile(r'id="([0-9]*?)"')
@@ -75,9 +77,9 @@ class Harvester:
 			call("gunzip " + gzfile, shell=True)
 
 		self.logger.info("Removing downloaded files")
-		removeFile(self.config["dest_prefix"] + "page.sql.gz")
-		removeFile(self.config["dest_prefix"] + "pages-articles.xml.bz2")
-		removeFile(self.config["dest_prefix"] + "categorylinks.sql.gz")
+		self.FS.removeFile(self.config["dest_prefix"] + "page.sql.gz")
+		self.FS.removeFile(self.config["dest_prefix"] + "pages-articles.xml.bz2")
+		self.FS.removeFile(self.config["dest_prefix"] + "categorylinks.sql.gz")
 
 
 	""" downloaded sql + custom sql to trim the total set """
@@ -204,12 +206,12 @@ class Harvester:
 		extractdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
 
 		self.logger.info("Cleaning up workdir files")
-		removeFile(file_prefix + "categorylinks.sql")
-		removeFile(file_prefix + "page.sql")
-		removeFile(file_prefix + "pages-articles.xml")
+		self.FS.removeFile(file_prefix + "categorylinks.sql")
+		self.FS.removeFile(file_prefix + "page.sql")
+		self.FS.removeFile(file_prefix + "pages-articles.xml")
 
 		for subdir in listdir(extractdir):
-			removeDir(extractdir + "/" + subdir)
+			self.FS.removeDir(extractdir + "/" + subdir)
 
 
 	""" Debug """
