@@ -9,6 +9,7 @@ db_name=mangrove
 pusher_class=edurepdelen
 pusher_key=****
 fs_recordbase=/var/mangrove-records
+fs_workbase=/var/mangrove-workdir
 
 [wikipedia_nl]
 module=mediawiki
@@ -25,13 +26,10 @@ work_dir=/opt/Wikipedia
 [youtube]
 module=youtube
 configuration=youtube
-
 proxy_use=false
 developer_key=****
 
 [khanacademy]
 module=khanacademy
-configuration=khanacademy
 proxy_use=false
-work_dir=/opt/khanacademy
 developer_key=****

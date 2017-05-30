@@ -28,20 +28,19 @@ class Harvester(Interface):
 		self.topicwhitelist = ["computing", "math", "science", "economics-finance-domain", "humanities" ]
 
 		self.mappinggraph = Graph()
-		self.mappinggraph.parse(self.config["work_dir"] + "/khanmapping.rdf", format="xml")
+		self.mappinggraph.parse(self.FS.workdir + "/khanmapping.rdf", format="xml")
 		
 		self.obkgraph = Graph()
-		self.obkgraph.parse(self.config["work_dir"] + "/obk-skos.xml", format="xml")
+		self.obkgraph.parse(self.FS.workdir + "/obk-skos.xml", format="xml")
 
 
 	def harvest(self,part=""):
 		""" download the topic tree """
 		self.logger.info("Downloading topictree")
-		downloadFile(self.httpProxy,"http://www.khanacademy.org/api/v1/topictree",self.config["work_dir"] + "/topictree.json")
-		f = open(self.config["work_dir"] + "/topictree.json", 'r')
-		result = json.loads(f.read() )
-		f.close()
-		
+		downloadFile(self.httpProxy,"http://www.khanacademy.org/api/v1/topictree",self.FS.workdir + "/topictree.json")
+		with open(self.FS.workdir + "/topictree.json", 'r') as f:
+			result = json.loads(f.read())
+
 		""" check if dataset is updated """
 		if self.DB.collection_updated > getTimestampFromZuluDT(result["creation_date"]):
 			self.logger.info("upstream data has not been updated, exiting")

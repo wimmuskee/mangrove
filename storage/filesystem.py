@@ -5,7 +5,9 @@ from shutil import rmtree
 class Filesystem:
 	def __init__(self,config):
 		self.recordbase = config["fs_recordbase"].rstrip("/")
+		self.workdir = config["fs_workbase"].rstrip("/") + "/" + config["configuration"]
 		self.makeDir(self.recordbase)
+		self.makeDir(self.workdir)
 
 
 	def storeRecord(self,collection,format,identifier,data):

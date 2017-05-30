@@ -6,6 +6,8 @@ db_host=localhost
 db_user=test
 db_passwd=
 db_name=test
+fs_recordbase=/tmp/mangrove_records
+fs_workbase=/tmp/mangrove_workdir
 
 [default_collection]
 proxy_use=true
