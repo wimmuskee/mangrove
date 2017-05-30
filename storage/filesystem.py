@@ -4,20 +4,20 @@ from shutil import rmtree
 
 class Filesystem:
 	def __init__(self,config):
-		self.recordbase = config["fs_recordbase"].rstrip("/")
+		self.recorddir = config["fs_recordbase"].rstrip("/") + "/" + config["configuration"]
 		self.workdir = config["fs_workbase"].rstrip("/") + "/" + config["configuration"]
-		self.makeDir(self.recordbase)
+		self.makeDir(self.recorddir)
 		self.makeDir(self.workdir)
 
 
-	def storeRecord(self,collection,format,identifier,data):
-		if not collection or not format:
-			raise ValueError("collection or format not specified")
+	def storeRecord(self,format,identifier,data):
+		if not format:
+			raise ValueError("format not specified")
 
 		if len(identifier) <= 2:
 			raise ValueError("identifier should have a length of at least 3")
 
-		targetdir = self.recordbase + "/" + collection + "/" + format + "/" + identifier[0:2]
+		targetdir = self.recorddir + "/" + format + "/" + identifier[0:2]
 		self.makeDir(targetdir)
 
 		with open(targetdir + "/" + identifier, "w") as f:
