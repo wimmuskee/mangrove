@@ -172,7 +172,7 @@ class Harvester(Interface):
 		oaidc = makeOAIDC(self.getOaidcRecord(record))
 
 		""" retrieve by page_id, if exists, update, else insert """
-		row = self.DB.getUpdatedByOriginalId(record["original_id"])
+		row = self.DB.getRecordByOriginalId(record["original_id"])
 		
 		if row:
 			""" update only if actually new """

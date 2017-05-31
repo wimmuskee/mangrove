@@ -35,9 +35,9 @@ class Database:
 		return c.fetchall()
 
 
-	def getUpdatedByOriginalId(self,original_id):
+	def getRecordByOriginalId(self,original_id):
 		c = self.DB.cursor()
-		query = "SELECT updated FROM oairecords WHERE original_id = %s"
+		query = "SELECT * FROM oairecords WHERE original_id = %s"
 		c.execute(query, (original_id,))
 		return c.fetchone()
 
