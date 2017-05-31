@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from storage.mysql import Database
+from storage.filesystem import Filesystem
 from mangrove_libs.common import getLogger, getRequestsProxy, getHttplib2Proxy
 from time import time
 
@@ -9,6 +10,7 @@ class Interface:
 	def __init__(self,config):
 		self.config = config
 		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"])
+		self.FS = Filesystem(config)
 		self.httpProxy=None
 		self.logger = getLogger(self.__doc__)
 		self.startts = int(time())

@@ -22,6 +22,13 @@ class Database:
 		self.collection_pushed = int(row["pushed"])
 
 
+	def getAll(self):
+		c = self.DB.cursor()
+		query = "SELECT * FROM oairecords WHERE collection_id = %s"
+		c.execute(query, (self.collection_id,))
+		return c.fetchall()
+
+
 	def getUndeleted(self):
 		c = self.DB.cursor()
 		query = "SELECT identifier,original_id FROM oairecords WHERE collection_id = %s AND deleted = 0"
