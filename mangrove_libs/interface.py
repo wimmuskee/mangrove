@@ -30,3 +30,19 @@ class Interface:
 
 	def getNewIdentifier(self):
 		return str(uuid4())
+
+
+	def storeResult(self,record,setspec,lom,oaidc):
+		""" retrieve by page_id, if exists, update, else insert """
+		row = self.DB.getRecordByOriginalId(record["original_id"])
+
+		if row:
+			self.DB.updateRecord(lom,oaidc,record["original_id"])
+			identifier = record["identifier"]
+		else:
+			identifier = self.getNewIdentifier()
+			self.DB.insertRecord(identifier,lom,oaidc,setspec,record["original_id"])
+
+		# always update fs record
+		self.FS.storeRecord("lom",identifier,lom)
+		self.FS.storeRecord("oaidc",identifier,oaidc)

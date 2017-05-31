@@ -92,8 +92,10 @@ class Harvester(Interface):
 			
 			for o in self.mappinggraph.objects(URIRef(self.currenttopic), SKOS.broadMatch):
 				r["discipline"].append( [ self.findTaxons(list(),o) ] )
-			
-			self.storeResults(r,"video")
+
+			lom = makeLOM(r)
+			oaidc = makeOAIDC(self.getOaidcRecord(r))
+			self.storeResults(r,"video",lom,oaidc)
 
 		if "children" in node:
 			for cnode in node["children"]:
@@ -167,10 +169,7 @@ class Harvester(Interface):
 			return self.findTaxons(taxonpath, str(self.obkgraph.value( URIRef(obkid), SKOS.broader)) )
 
 
-	def storeResults(self,record,setspec):
-		lom = makeLOM(record)
-		oaidc = makeOAIDC(self.getOaidcRecord(record))
-
+	def storeResults(self,record,setspec,lom,oaidc):
 		""" retrieve by page_id, if exists, update, else insert """
 		row = self.DB.getRecordByOriginalId(record["original_id"])
 		

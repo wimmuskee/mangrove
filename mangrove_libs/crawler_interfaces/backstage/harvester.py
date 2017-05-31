@@ -52,9 +52,11 @@ class Harvester(Interface):
 				r["typicalagerange"] = v["item"]["_source"]["ageGroups"]
 			if "tijdsduur" in v["metadata"]:
 				r["duration"] = common.getDuration(v["metadata"]["tijdsduur"] )
-			
-			self.storeResult(r,self.config["configuration"])
-		
+
+			lom = makeLOM(r)
+			oaidc = makeOAIDC(self.getOaidcRecord(r))
+			self.storeResult(r,self.config["configuration"],lom,oaidc)
+
 		if result["meta"]["token"] < result["meta"]["total"]:
 			self.logger.debug( "token = " + str(result["meta"]["token"]) + ", total = " + str(result["meta"]["total"]) )
 			sleep(5)
@@ -82,17 +84,3 @@ class Harvester(Interface):
 		r["identifier"] = record["location"]
 		r["language"] = record["language"]
 		return r
-
-
-	def storeResult(self,record,setspec):
-		lom = makeLOM(record)
-		oaidc = makeOAIDC(self.getOaidcRecord(record))
-
-		""" retrieve by page_id, if exists, update, else insert """
-		row = self.DB.getRecordByOriginalId(record["original_id"])
-
-		if row:
-			self.DB.updateRecord(lom,oaidc,record["original_id"])
-		else:
-			identifier = self.getNewIdentifier()
-			self.DB.insertRecord(identifier,lom,oaidc,setspec,record["original_id"])
