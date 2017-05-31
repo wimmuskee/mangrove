@@ -178,6 +178,10 @@ class Harvester(Interface):
 			""" update only if actually new """
 			if getTimestampFromZuluDT(record["publishdate"]) > row["updated"]:
 				self.DB.updateRecord(lom,oaidc,record["original_id"])
+				self.FS.storeRecord("lom",row["identifier"],lom)
+				self.FS.storeRecord("oaidc",row["identifier"],oaidc)
 		else:
 			identifier = self.getNewIdentifier()
 			self.DB.insertRecord(identifier,lom,oaidc,setspec,record["original_id"])
+			self.FS.storeRecord("lom",identifier,lom)
+			self.FS.storeRecord("oaidc",identifier,oaidc)

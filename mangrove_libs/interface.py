@@ -29,4 +29,4 @@ class Interface:
 
 
 	def getNewIdentifier(self):
-		return uuid4()
+		return str(uuid4())

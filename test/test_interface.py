@@ -2,7 +2,7 @@ from unittest import TestCase
 from mangrove_libs import common
 from mangrove_libs.interface import Interface
 from storage.mysql import Database
-
+import re
 
 class InterfaceTestCase(TestCase):
 	@classmethod
@@ -34,3 +34,7 @@ class InterfaceTestCase(TestCase):
 	def test_requests_proxy(self):
 		self.interface.handleRequestsProxy()
 		self.assertEqual(self.interface.httpProxy["http"], "123.123.23.23:3128")
+
+	def test_new_identifier_uuid(self):
+		identifier = self.interface.getNewIdentifier()
+		self.assertTrue(re.match(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$', identifier))
