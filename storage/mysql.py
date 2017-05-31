@@ -3,7 +3,6 @@
 import MySQLdb
 import MySQLdb.cursors
 from time import time
-from uuid import uuid4
 
 
 class Database:
@@ -65,10 +64,9 @@ class Database:
 		self.DB.commit()
 
 
-	def insertRecord(self,lom,oaidc,setspec,original_id):
+	def insertRecord(self,identifier,lom,oaidc,setspec,original_id):
 		c = self.DB.cursor()
 		timestamp = int(time())
-		identifier = uuid4()
 		query = "INSERT INTO oairecords (identifier,original_id,collection_id,setspec,updated,lom,oaidc) VALUES ( %s, %s, %s, %s, %s, %s, %s )"
 		c.execute(query, (identifier,original_id,self.collection_id,setspec,timestamp,lom,oaidc))
 		self.DB.commit()
