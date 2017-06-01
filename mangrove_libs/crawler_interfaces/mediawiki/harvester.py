@@ -20,7 +20,6 @@ class Harvester:
 		self.DB.set_character_set('utf8')
 		self.FS = Filesystem(config)
 		self.httpProxy = None
-		self.config["dest_prefix"] = config["work_dir"] + "/" + config["wiki"] + "-"
 		self.re_docid = re.compile(r'id="([0-9]*?)"')
 		self.re_htmltags = re.compile('<[^<]+?>')
 		self.logger = getLogger('mediawiki harvester')
@@ -53,39 +52,39 @@ class Harvester:
 		src_prefix = self.config["download_path"] + self.config["wiki"] + "-"
 
 		self.logger.info("Downloading page sql file")
-		downloadFile(self.httpProxy, src_prefix + "latest-page.sql.gz", self.config["dest_prefix"] + "page.sql.gz")
-		
+		page_sql_gz = self.FS.workdir + "/page.sql.gz"
+		downloadFile(self.httpProxy, src_prefix + "latest-page.sql.gz", page_sql_gz)
+
 		self.logger.info("Unpacking page sql file")
-		gzfile = self.config["dest_prefix"] + "page.sql.gz"
-		if path.isfile(gzfile):
-			call("gunzip " + gzfile, shell=True)
+		if path.isfile(page_sql_gz):
+			call("gunzip " + page_sql_gz, shell=True)
 
 		self.logger.info("Downloading page xml file")
-		downloadFile(self.httpProxy, src_prefix + "latest-pages-articles.xml.bz2", self.config["dest_prefix"] + "pages-articles.xml.bz2")
-		
+		page_xml_bz = self.FS.workdir + "/pages-articles.xml.bz2"
+		downloadFile(self.httpProxy, src_prefix + "latest-pages-articles.xml.bz2", page_xml_bz)
+
 		self.logger.info("Unpacking page xml file")
-		bzfile = self.config["dest_prefix"] + "pages-articles.xml.bz2"
-		if path.isfile(bzfile):
-			call("bunzip2 " + bzfile, shell=True)
+		if path.isfile(page_xml_bz):
+			call("bunzip2 " + page_xml_bz, shell=True)
 
 		self.logger.info("Downloading categories sql file")
-		downloadFile(self.httpProxy, src_prefix + "latest-categorylinks.sql.gz", self.config["dest_prefix"] + "categorylinks.sql.gz")
+		categories_sql_gz = self.FS.workdir + "/categorylinks.sql.gz"
+		downloadFile(self.httpProxy, src_prefix + "latest-categorylinks.sql.gz", categories_sql_gz)
 		
 		self.logger.info("Unpacking categories sql file")
-		gzfile = self.config["dest_prefix"] + "categorylinks.sql.gz"
-		if path.isfile(gzfile):
-			call("gunzip " + gzfile, shell=True)
+		if path.isfile(categories_sql_gz):
+			call("gunzip " + categories_sql_gz, shell=True)
 
 		self.logger.info("Removing downloaded files")
-		self.FS.removeFile(self.config["dest_prefix"] + "page.sql.gz")
-		self.FS.removeFile(self.config["dest_prefix"] + "pages-articles.xml.bz2")
-		self.FS.removeFile(self.config["dest_prefix"] + "categorylinks.sql.gz")
+		self.FS.removeFile(page_sql_gz)
+		self.FS.removeFile(page_xml_bz)
+		self.FS.removeFile(categories_sql_gz)
 
 
 	""" downloaded sql + custom sql to trim the total set """
 	def importData(self):
 		self.logger.info("Importing data in database")
-		sqlfiles = [self.config["dest_prefix"] + "page.sql", self.config["dest_prefix"] + "categorylinks.sql"]
+		sqlfiles = [self.FS.workdir + "/page.sql", self.FS.workdir + "/categorylinks.sql"]
 		sqlfiles.append(self.share_prefix + "importCategories.sql")
 		sqlfiles.append(self.share_prefix + "importCategoryRelations.sql")
 		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_removeSmallPages.sql")
@@ -99,15 +98,15 @@ class Harvester:
 
 	def preprocessText(self):
 		self.logger.info("Preprocessing text")
-		outputdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
-		inputfile = self.config["dest_prefix"] + "pages-articles.xml"
+		outputdir = self.FS.workdir + "/extract"
+		inputfile = self.FS.workdir + "/pages-articles.xml"
 		script = self.share_prefix + "WikiExtractorWrapper.sh"
 		call([script, inputfile, outputdir])
 
 
 	def parseExtracts(self):
 		self.logger.info("Parse text extracts")
-		for (dirpath, dirnames, filenames) in walk(self.config["work_dir"] + "/extract-" + self.config["wiki"]):
+		for (dirpath, dirnames, filenames) in walk(self.FS.workdir + "/extract"):
 			for bzfile in filenames:
 				self.parseExtract(dirpath + "/" + bzfile)
 
@@ -202,16 +201,13 @@ class Harvester:
 
 
 	def cleanup(self):
-		file_prefix = self.config["work_dir"] + "/" + self.config["wiki"] + "-"
-		extractdir = self.config["work_dir"] + "/extract-" + self.config["wiki"]
-
 		self.logger.info("Cleaning up workdir files")
-		self.FS.removeFile(file_prefix + "categorylinks.sql")
-		self.FS.removeFile(file_prefix + "page.sql")
-		self.FS.removeFile(file_prefix + "pages-articles.xml")
+		self.FS.removeFile(self.FS.workdir + "/categorylinks.sql")
+		self.FS.removeFile(self.FS.workdir + "/page.sql")
+		self.FS.removeFile(self.FS.workdir + "/pages-articles.xml")
 
-		for subdir in listdir(extractdir):
-			self.FS.removeDir(extractdir + "/" + subdir)
+		for subdir in listdir(self.FS.workdir + "/extract"):
+			self.FS.removeDir(self.FS.workdir + "/extract/" + subdir)
 
 
 	""" Debug """
