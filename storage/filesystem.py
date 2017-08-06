@@ -31,7 +31,7 @@ class Filesystem:
 			pass
 
 
-	def removeFile(filename):
+	def removeFile(self,filename):
 		try:
 			os.remove(filename)
 		except OSError:
