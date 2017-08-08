@@ -37,8 +37,8 @@ class Database:
 
 	def getRecordByOriginalId(self,original_id):
 		c = self.DB.cursor()
-		query = "SELECT * FROM oairecords WHERE original_id = %s"
-		c.execute(query, (original_id,))
+		query = "SELECT * FROM oairecords WHERE original_id = %s AND collection_id = %s"
+		c.execute(query, (original_id,self.collection_id))
 		return c.fetchone()
 
 
