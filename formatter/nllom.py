@@ -2,9 +2,12 @@
 from lxml import etree
 
 vocabdict = { "aggregationlevel": "LOMv1.0",
+	"structure": "LOMv1.0",
 	"role": "LOMv1.0",
+	"interactivitytype": "http://purl.edustandaard.nl/vdex_interactiontype_lomv1p0_20060628.xml",
 	"learningresourcetype": "http://purl.edustandaard.nl/vdex_learningresourcetype_czp_20060628.xml",
 	"context": "http://purl.edustandaard.nl/vdex_context_czp_20060628.xml",
+	"difficulty": "LOMv1.0",
 	"intendedenduserrole": "LOMv1.0",
 	"cost": "LOMv1.0",
 	"copyrightandotherrestrictions": "http://purl.edustandaard.nl/copyrightsandotherrestrictions_nllom_20131202",
@@ -23,6 +26,7 @@ def getEmptyLomDict():
 		"description": "",
 		"keywords": [], 
 		"language": "",
+		"structure": "",
 		"aggregationlevel": "",
 		"publisher": "",
 		"publishdate": "",
@@ -30,10 +34,12 @@ def getEmptyLomDict():
 		"metalanguage": "",
 		"format": "",
 		"location": "",
+		"interactivitytype": "",
 		"context": [],
 		"learningresourcetype": "",
 		"intendedenduserrole": "",
 		"typicalagerange": "",
+		"difficulty": "",
 		"duration": "",
 		"cost": "",
 		"copyright": "",
@@ -75,8 +81,14 @@ def makeLOM(lomdict):
 		for kw in lomdict["keywords"]:
 			general.append(makeLangstring("keyword", kw))
 
+	if lomdict["structure"]:
+		general.append(makeVocab("structure", lomdict["structure"]))
+
 	if lomdict["aggregationlevel"]:
 		general.append(makeVocab("aggregationlevel", lomdict["aggregationlevel"]))
+
+	if lomdict["version"]:
+		lifecycle.append(makeLangstring("version", lomdict["version"],"x-none"))
 
 	if lomdict["publisher"]:
 		lifecycle.append(makeContribute("publisher",makeVcard({"fn": lomdict["publisher"]}),lomdict["publishdate"]))
@@ -100,6 +112,9 @@ def makeLOM(lomdict):
 	if lomdict["duration"]:
 		technical.append(makeDuration("duration",lomdict["duration"]))
 
+	if lomdict["interactivitytype"]:
+		educational.append(makeVocab("interactivitytype",lomdict["interactivitytype"]))
+
 	if lomdict["learningresourcetype"]:
 		educational.append(makeVocab("learningresourcetype",lomdict["learningresourcetype"]))
 
@@ -111,6 +126,12 @@ def makeLOM(lomdict):
 
 	if lomdict["typicalagerange"]:
 		educational.append(makeElement("typicalagerange",lomdict["typicalagerange"]))
+
+	if lomdict["typicallearningtime"]:
+		educational.append(makeDuration("typicallearningtime",lomdict["typicallearningtime"]))
+
+	if lomdict["difficulty"]:
+		educational.append(makeVocab("difficulty",lomdict["difficulty"]))
 
 	if lomdict["cost"]:
 		rights.append(makeVocab("cost", lomdict["cost"]))
@@ -134,6 +155,9 @@ def makeLOM(lomdict):
 
 	if lomdict["thumbnail"]:
 		lom.append(makeRelation("thumbnail", lomdict["thumbnail"]))
+
+	if lomdict["isversionof"]:
+		lom.append(makeRelation("isversionof", lomdict["isversionof"], "De metadata is op deze revisie gebaseerd."))
 
 	# multiple educationallevel classifications
 	for levels in lomdict["educationallevel"]:
@@ -212,10 +236,12 @@ def makeCatalogEntry(key,identifier):
 	e.append(makeLangstring("entry",identifier,"x-none"))
 	return e
 
-def makeRelation(kind,identifier):
+def makeRelation(kind,identifier,description=""):
 	e = etree.Element(xmlns + "relation")
 	e.append(makeVocab("kind",kind))
 	resource = etree.Element(xmlns + "resource")
+	if description:
+		resource.append(makeLangstring("description",description))
 	resource.append(makeCatalogEntry("URI",identifier))
 	e.append(resource)
 	return e
