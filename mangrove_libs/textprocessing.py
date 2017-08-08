@@ -3,7 +3,7 @@
 This module contains text processing
 functions for the mangrove crawler.
 
-Wim Muskee, 2013-2016
+Wim Muskee, 2013-2017
 wimmuskee@gmail.com
 
 License: GPL-3
@@ -12,6 +12,7 @@ License: GPL-3
 import os
 from collections import defaultdict
 from nltk import tokenize
+from math import ceil
 
 class TextProcessor:
 	def __init__(self,text,locale,calculator=None):
@@ -62,3 +63,13 @@ class TextProcessor:
 
 		keywords = sorted(keys, key=keys.get, reverse=True)
 		return keywords[:15]
+
+
+	def getReadingTime(self,wordcount,min_age):
+		""" Get a reading time based on the wordcount, minimal age calculation and partly
+		research based algorithm for age based reading speed (words/minute). """
+		readspeed = { 6: 28, 7: 56, 8: 73, 9: 84, 10: 90, 11: 95, 12: 96, 13: 113, 14: 130, 15: 147, 16: 164, 17: 181, 18: 198 }
+		if int(min_age) in readspeed:
+			return int(ceil(wordcount/readspeed[int(min_age)] * 60))
+		else:
+			return int(ceil(wordcount/215 * 60))
