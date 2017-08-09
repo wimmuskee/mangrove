@@ -5,6 +5,7 @@ Gathers metadata and transforms it to learning object metadata.
 Dependencies listed for each interface. Currently tested for Python 2.7.
 
 ## generic ##
+- [lxml](http://lxml.de/)
 - [MySQLdb](http://sourceforge.net/projects/mysql-python/)
 - [configparser](https://pypi.python.org/pypi/configparser/)
 - [prettytable](https://code.google.com/p/prettytable/) for admin
@@ -16,12 +17,10 @@ Dependencies listed for each interface. Currently tested for Python 2.7.
 - [requests](http://python-requests.org)
 
 ## youtube ##
-- [lxml](http://lxml.de/)
 - [google-api-python-client](http://code.google.com/p/google-api-python-client/)
 - [socksipy](http://socksipy.sourceforge.net) for httplib2 proxy
 
 ## khanacademy ##
-- [lxml](http://lxml.de/)
 - [requests](http://python-requests.org)
 - [RDFLib](https://github.com/RDFLib/rdflib)
 - [google-api-python-client](http://code.google.com/p/google-api-python-client/) for purger
@@ -43,6 +42,14 @@ Here's an example for source "wikipedia_nl" with comments:
 # common configuration to be used by all sources
 proxy_host=123.123.23.23
 proxy_port=3128
+# database
+db_host=localhost
+db_user=root
+db_passwd=*******
+db_name=mangrove
+# filesystem
+fs_recordbase=/var/mangrove-records
+fs_workbase=/var/mangrove-workdir
 
 [wikipedia_nl]
 # the interface module to use (in mangrove_crawler/interfaces)
@@ -51,15 +58,13 @@ module=mediawiki
 wiki=nlwiki
 setspec=wikipedia_nl
 download_path=http://dumps.wikimedia.org/nlwiki/latest/
-# database
-db_host=localhost
-db_user=root
-db_passwd=*******
-db_name=wikilom
+host=https://nl.wikipedia.org/wiki/
+
+context_static=PO
+context_dynamic=0
+age_range=8-12
 # whether or not to use the defined proxy
 proxy_use=false
-# work here, all working files are here
-work_dir=/opt/Wikipedia
 ```
 
 # roadmap #
@@ -69,5 +74,4 @@ The following things to do for a 1.0
 - [ ] oaiprovider/uniform database solution for metadata storage
 - [ ] fix reporter, for generic data storage
 - [ ] command for new source, generating config file, and database entry
-- [ ] update wikipedia to new database solution
 - [ ] unittests
