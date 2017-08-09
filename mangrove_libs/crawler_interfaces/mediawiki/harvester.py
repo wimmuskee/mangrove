@@ -2,31 +2,25 @@
 
 import common
 from mangrove_libs.textprocessing import TextProcessor
-from mangrove_libs.common import downloadFile, checkLocal, getRequestsProxy, checkPrograms, getLogger
-from storage.filesystem import Filesystem
-import MySQLdb
-import MySQLdb.cursors
+from mangrove_libs.common import downloadFile, checkLocal, checkPrograms
+from mangrove_libs.interface import Interface
+from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
+from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 import re
 from bz2 import BZ2File
 from subprocess import Popen, PIPE, call
 from os import walk, path, listdir
-from time import time
-from uuid import uuid4
+import datetime
 
-class Harvester:
+class Harvester(Interface):
+	"""mediawiki harvester"""
+
 	def __init__(self,config):
-		self.config = config
-		self.DB = MySQLdb.connect(host=config["db_host"],user=config["db_user"], passwd=config["db_passwd"],db=config["db_name"],use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
-		self.DB.set_character_set('utf8')
-		self.FS = Filesystem(config)
-		self.httpProxy = None
+		Interface.__init__(self, config)
+		Interface.handleRequestsProxy(self)
 		self.re_docid = re.compile(r'id="([0-9]*?)"')
 		self.re_htmltags = re.compile('<[^<]+?>')
-		self.logger = getLogger('mediawiki harvester')
-
-
-		if self.config["proxy_host"] and self.config["proxy_use"]:
-			self.httpProxy = getRequestsProxy(self.config["proxy_host"],self.config["proxy_port"])
+		self.pages_to_update = {}
 
 		if checkLocal:
 			self.share_prefix = "share/interfaces/mediawiki/"
@@ -40,6 +34,7 @@ class Harvester:
 		""" Getting the data in 4 steps, parsing is distributed in parseExtracts """
 		self.getData()
 		self.importData()
+		self.getRecordsToUpdate()
 		self.preprocessText()
 		self.parseExtracts()
 		self.cleanup()
@@ -49,7 +44,11 @@ class Harvester:
 		""" Downloading and unpacking the files.
 		Unpacking at shell level, Wikipedia files too large for Python in-memory processing.
 		"""
-		src_prefix = self.config["download_path"] + self.config["wiki"] + "-"
+		# temporary fix
+		if self.config["wiki"] == "wikikids":
+			src_prefix = self.config["download_path"]
+		else:
+			src_prefix = self.config["download_path"] + self.config["wiki"] + "-"
 
 		self.logger.info("Downloading page sql file")
 		page_sql_gz = self.FS.workdir + "/page.sql.gz"
@@ -88,12 +87,30 @@ class Harvester:
 		sqlfiles.append(self.share_prefix + "importCategories.sql")
 		sqlfiles.append(self.share_prefix + "importCategoryRelations.sql")
 		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_removeSmallPages.sql")
-		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_selectTitles.sql")
 		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_renameTables.sql")
 
 		for sql in sqlfiles:
 			process = Popen('mysql %s -u%s -p%s' % (self.config["db_name"], self.config["db_user"], self.config["db_passwd"]), stdout=PIPE, stdin=PIPE, shell=True)
 			output = process.communicate(file(sql).read())
+
+
+	def getRecordsToUpdate(self):
+		""" Compare <source>_page table with oairecords table for this collection, and
+		get the page_ids for the records that need to be updated."""
+		c = self.DB.DB.cursor()
+		c.execute("SELECT page_id AS id, page_title AS title, page_touched AS touched, page_latest AS lastrev_id FROM " + self.config["wiki"] + "_page")
+		page_data = c.fetchall()
+		c.close()
+
+		for page in page_data:
+			oairecord = self.DB.getRecordByOriginalId(page["title"])
+			if oairecord:
+				# page exists already in oai, find out if updated
+				ts_touched = common.makeTimestamp(page["touched"])
+				if ts_touched > int(oairecord["updated"]):
+					self.pages_to_update[str(page["id"])] = { "touched": ts_touched, "title": page["title"], "lastrev_id": page["lastrev_id"] }
+			else:
+				self.pages_to_update[str(page["id"])] = { "touched": ts_touched, "title": page["title"], "lastrev_id": page["lastrev_id"] }
 
 
 	def preprocessText(self):
@@ -112,10 +129,8 @@ class Harvester:
 
 
 	def parseExtract(self,bzfile):
-		c = self.DB.cursor()
-		f = BZ2File(bzfile, 'r')
-		text = f.read()
-		f.close()
+		with BZ2File(bzfile, 'r') as f:
+			text = f.read()
 
 		"""
 		If line starts with <doc, make new article, fill it with lines,
@@ -126,78 +141,58 @@ class Harvester:
 				article = ""
 				id = self.re_docid.search(line).group(1)
 			elif line[:6] == "</doc>":
-				query = "SELECT * FROM " + self.config["wiki"] + "_page WHERE page_id = " + id
-				c.execute(query)
-				row = c.fetchone()
-				if row:
-					self.setData(row,article)
+				if id in self.pages_to_update:
+					self.setData(self.pages_to_update[id],article)
 			else:
 				article += "\n" + line
 
-		c.close()
 
-
-	""" Basically gets all data with some helper functions """
 	def setData(self,metadata,text):
-		""" make clean object """
-		self.page_id = 0
-		self.urltitle = ""
-		self.lastrev_id = 0
-		self.title = ""
-		self.description = ""
-		self.keywords = []
-		self.version = ""
-		self.updated = 0
-		self.min_age = 0 
-		self.sent_count = 0
-		self.word_count = 0
+		""" Basically gets all data with some helper functions, and stores it. """
+		r = self.__getDefaultMediawikiRecord()
+		r["publisher"] = self.config["wiki"]
+		r["identifier"] = [ { "catalog": "URI", "value": self.config["host"] + metadata["title"] } ]
+		r["version"] = datetime.datetime.fromtimestamp(metadata["touched"]).strftime('%d%m%Y')
+		r["publishdate"] = datetime.datetime.fromtimestamp(metadata["touched"]).strftime('%Y-%m-%dT%H:%M:%SZ')
+		r["location"] = self.config["host"] + metadata["title"]
+		r["isversionof"] =  self.config["host"] + "/index.php?title=" + metadata["title"] + "&oldid=" + str(metadata["lastrev_id"])
 
 		""" now fill with input """
-		textproc = TextProcessor(text,'nl_NL',"kpc")
-		self.page_id = metadata['page_id']
-		self.urltitle = metadata['page_title']
-		self.lastrev_id = metadata['page_latest']
-		self.version = metadata['page_touched'][6:8] + metadata['page_touched'][4:6] + metadata['page_touched'][0:4]
+		textproc = TextProcessor(text,'nl_NL')
+		lines = textproc.text.split('\n')
+		""" Not taking first line because before each line, a linebreak is inserted. """
+		r["title"] = lines[1].decode('utf-8')
+		r["typicalagerange"] = str(textproc.calculator.min_age) + "+"
+		r["typicallearningtime"] = formatDurationFromSeconds(textproc.getReadingTime(textproc.calculator.scores['word_count'],textproc.calculator.min_age))
 
-		if textproc.calculator.scores['sent_count'] >= 10 and textproc.calculator.scores['sentlen_average'] < 100:
-			lines = textproc.text.split('\n')
-			""" Not taking first line because before each line, a linebreak is inserted. """
-			self.title = lines[1]
-			self.description = self.re_htmltags.sub("",lines[3])
-			
-			self.updated = common.makeTimestamp(metadata['page_touched'])
-			self.keywords = textproc.getKeywords()
-			self.min_age = int(textproc.calculator.min_age)
-			self.sent_count = textproc.calculator.scores['sent_count']
-			self.word_count = textproc.calculator.scores['word_count']
+		keywords =  textproc.getKeywords()
+		for kw in keywords:
+			r["keywords"].append(kw.decode('utf-8'))
 
-			#self.printLOM()
-			self.storeResults()
-			#import sys
-			#sys.exit()
+		if len(lines) >= 4:
+			r["description"] = self.re_htmltags.sub("",lines[3]).decode('utf-8')
 
+		contexts = []
+		if self.config["context_static"]:
+			contexts = self.config["context_static"].split("|")
+		if self.config["context_dynamic"]:
+			if textproc.calculator.min_age < 13:
+				contexts.append("PO")
+			elif textproc.calculator.min_age > 12 and textproc.calculator.min_age < 19:
+				contexts.append("VO")
+		r["context"] = list(set(contexts))
 
-	def storeResults(self):
-		timestamp = int(time())
-		c = self.DB.cursor()
+		# override some if config
+		if self.config["age_range"]:
+			r["typicalagerange"] = self.config["age_range"]
+			min_age = re.search(r'^\d+', self.config["age_range"]).group(0)
+			r["typicallearningtime"] = formatDurationFromSeconds(textproc.getReadingTime(textproc.calculator.scores['word_count'],min_age))
 
-		""" retrieve by page_id, if exists, update, else insert """
-		query = "SELECT * FROM " + self.config["setspec"] + " WHERE page_id = " + str(self.page_id)
-		c.execute(query)
-		row = c.fetchone()
-		
-		if row:
-			identifier = row['identifier']
-			query = "UPDATE " + self.config["setspec"] + " SET title=%s, description=%s, lastrev_id=%s, version=%s, updated=%s, min_age=%s, sentences=%s, words=%s WHERE page_id = %s"
-			c.execute(query, (self.title,self.description,self.lastrev_id,self.version,self.updated,self.min_age,self.sent_count,self.word_count,self.page_id))
-			c.execute("""UPDATE oairecords SET updated=%s,deleted=0 WHERE identifier=%s""", (timestamp,identifier))
-		else:
-			identifier = uuid4()
-			query = "INSERT INTO " + self.config["setspec"] + " (identifier, page_id, title, url_title, description, lastrev_id, version, updated, min_age, sentences, words) VALUES ( %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s )"
-			c.execute(query, (identifier,self.page_id,self.title,self.urltitle,self.description,self.lastrev_id,self.version,self.updated,self.min_age,self.sent_count,self.word_count) )
-			c.execute("""INSERT INTO oairecords (identifier,setspec,updated) VALUES ( %s, %s, %s )""", (identifier,self.config["setspec"],timestamp))
+		lom = makeLOM(r)
+		oaidc = makeOAIDC(self.__getOaidcRecord(r))
 
-		c.close()
+		# and store
+		self.storeResult({"original_id": metadata["title"]},None,lom,oaidc)
 
 
 	def cleanup(self):
@@ -210,14 +205,28 @@ class Harvester:
 			self.FS.removeDir(self.FS.workdir + "/extract/" + subdir)
 
 
-	""" Debug """
-	def printLOM(self):
-		print "wiki: " + self.config["wiki"]
-		print "general.title: " + self.title
-		print "general.description: " + self.description
-		print "general.keywords: " + ", ".join(self.keywords)
-		print "lifecycle.version: " + self.version
-		print "technical.location: " + "http://mediawikihost/index.php?title=" + self.urltitle + "&oldid=" + str(int(self.lastrev_id))
-		print "educational.typicalagerange: " + str(int(self.fk.min_age)) + "+"
-		print "classification.words: " + str( self.fk.scores['word_count'] )
-		print "classification.sentences: " + str( self.fk.scores['sent_count'] ) 
+	def __getDefaultMediawikiRecord(self):
+		r = getEmptyLomDict()
+		r["cost"] = "no"
+		r["language"] = "nl"
+		r["aggregationlevel"] = "2"
+		r["metalanguage"] = "nl"
+		r["structure"] = "hierarchical"
+		r["format"] = "text/html"
+		r["intendedenduserrole"] = "learner"
+		r["learningresourcetype"] = "informatiebron"
+		r["interactivitytype"] = "expositive"
+		r["copyrightandotherrestrictions"] = "cc-by-sa-30"
+		return r
+
+	def __getOaidcRecord(self,record):
+		r = getEmptyOaidcDict()
+		r["title"] = record["title"]
+		r["description"] = record["description"]
+		r["subject"] = record["keywords"]
+		r["publisher"] = record["publisher"]
+		r["format"] = record["format"]
+		r["identifier"] = record["location"]
+		r["language"] = record["language"]
+		r["rights"] = record["copyright"]
+		return r

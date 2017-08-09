@@ -14,13 +14,12 @@ fs_workbase=/var/mangrove-workdir
 [wikipedia_nl]
 module=mediawiki
 wiki=nlwiki
-setspec=wikipedia_nl
+host=https://nl.wikipedia.org/wiki/
 download_path=http://dumps.wikimedia.org/nlwiki/latest/
-db_host=localhost
-db_user=root
-db_passwd=*******
-db_name=wikilom
 proxy_use=false
+context_static=PO
+context_dynamic=0
+age_range=8-12
 
 [youtube]
 module=youtube
