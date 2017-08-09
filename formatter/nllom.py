@@ -28,6 +28,7 @@ def getEmptyLomDict():
 		"language": "",
 		"structure": "",
 		"aggregationlevel": "",
+		"version": "",
 		"publisher": "",
 		"publishdate": "",
 		"author": [],
@@ -41,10 +42,12 @@ def getEmptyLomDict():
 		"typicalagerange": "",
 		"difficulty": "",
 		"duration": "",
+		"typicallearningtime": "",
 		"cost": "",
 		"copyright": "",
 		"embed": "",
 		"thumbnail": "",
+		"isversionof": "",
 		"discipline": [],
 		"educationallevel": [] }
 	return lomdict
