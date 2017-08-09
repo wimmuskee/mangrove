@@ -24,6 +24,9 @@ def getConfig(configfile,section):
 			else:
 				config_options[option] = Config.get(section, option)
 
+			if config_options[option] == "0":
+				config_options[option] = None
+
 			if config_options[option] == -1:
 				DebugPrint("skip: %s" % option)
 		except:
