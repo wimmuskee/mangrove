@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from mangrove_libs.interface import Interface
-from storage.mysql import Database
 import requests
-
-## NOT TESTED
 
 class Pusher(Interface):
 	def __init__(self,config):
 		Interface.__init__(self, config)
-		self.endpoint = "https://api.delen.edurep.nl/v1/"
+		self.endpoint = self.config["pusher_endpoint"]
 		self.endpoint_key = self.config["pusher_key"]
 
 
@@ -32,22 +29,23 @@ class Pusher(Interface):
 
 	def push(self,identifier,xml):
 		try:
-			r = requests.post(self.endpoint + self.endpoint_key + "/learning_object/" + identifier) + "/lom/", data=xml)
+			r = requests.put(self.endpoint + self.endpoint_key + "/learning_object/" + identifier + "/lom", data={ "publish": "true", "data": xml })
 			self.readGenericResponse(r.json())
 		except Exception as err:
-			self.logger("pushing failed: " + err)
+			self.logger.error("pushing failed: " + str(err))
 			exit()
 
 
+	# TODO, this does not work without xml
 	def delete(self,identifier):
 		try:
 			r = requests.delete(self.endpoint + self.endpoint_key + "/learning_object/" + identifier)
 			self.readGenericResponse(r.json())
 		except Exception as err:
-			self.logger("pushing delete failed: " + err)
+			self.logger.error("pushing delete failed: " + str(err))
 			exit()
 
 
 	def readGenericResponse(self,response):
 		if response["status"] == "failed":
-			raise RunTimeError(response["error"])
+			raise RuntimeError(response["error"])
