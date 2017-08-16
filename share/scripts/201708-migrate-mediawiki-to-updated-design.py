@@ -5,7 +5,7 @@
 # Keep the old database in the source config, and generic mangrove db in the common config.
 
 # copy script to application root and execute:
-# python2 201708-migrate-mediawiki-to-updated-design.py -s wikikids -d wikilom -u "http://wikikids.nl/"
+# python2 201708-migrate-mediawiki-to-updated-design.py -s wikikids
 
 
 import argparse
@@ -16,10 +16,10 @@ from storage.filesystem import Filesystem
 from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 import datetime
+import re
 
 parser = argparse.ArgumentParser(description='migration script for mediawiki records')
 parser.add_argument('-s', '--source', nargs=1, help='Mediawiki Data provider', metavar='datasource', dest='source')
-parser.add_argument('-u', '--host', nargs=1, help='source location host', metavar='host', dest='host')
 
 args = parser.parse_args()
 
@@ -27,11 +27,6 @@ if args.source:
 	source = args.source[0]
 else:
 	parser.error('Input a valid source')
-
-if args.host:
-	host = args.host[0]
-else:
-	parser.error('Provide the host with which to prefix the database url_title')
 
 # load config
 configfile = "mangrove-crawler.cfg"
@@ -75,19 +70,32 @@ for record in recorddata:
 	r["intendedenduserrole"] = "learner"
 	r["learningresourcetype"] = "informatiebron"
 	r["interactivitytype"] = "expositive"
-	r["context"] = ["PO"]
-	r["typicalagerange"] = "10-12"
 	r["copyrightandotherrestrictions"] = "cc-by-sa-30"
-	r["identifier"] = [ { "catalog": "URI", "value": host + record["url_title"] } ]
+	r["identifier"] = [ { "catalog": "URI", "value": oldconfig["host"] + record["url_title"] } ]
 	r["title"] = record["title"]
 	r["description"] = record["description"]
 	r["keywords"] = keywords
 	r["version"] = record["version"]
 	r["publishdate"] = datetime.datetime.fromtimestamp(int(record["updated"])).strftime('%Y-%m-%dT%H:%M:%SZ')
-	r["location"] = host + record["url_title"]
-	r["isversionof"] =  host + "/index.php?title=" + record["url_title"] + "&oldid=" + str(record["lastrev_id"])
-	r["typicallearningtime"] = formatDurationFromSeconds(t.getReadingTime(record["words"],10))
-	# not copying difficulty, for now, hard to implement at future harvest level (generically)	
+	r["location"] = oldconfig["host"] + record["url_title"]
+	r["isversionof"] =  oldconfig["host"] + "index.php?title=" + record["url_title"] + "&oldid=" + str(record["lastrev_id"])
+	r["typicallearningtime"] = formatDurationFromSeconds(t.getReadingTime(record["words"],int(record["min_age"])))
+	# not copying difficulty, for now, hard to implement at future harvest level (generically)
+	contexts = []
+	if oldconfig["context_static"]:
+		contexts = oldconfig["context_static"].split("|")
+	if oldconfig["context_dynamic"]:
+		if int(record["min_age"]) < 13:
+			contexts.append("PO")
+		elif int(record["min_age"]) > 12 and int(record["min_age"]) < 19:
+			contexts.append("VO")
+	r["context"] = list(set(contexts))
+
+	if oldconfig["age_range"]:
+		r["typicalagerange"] = oldconfig["age_range"]
+		min_age = re.search(r'^\d+', oldconfig["age_range"]).group(0)
+		r["typicallearningtime"] = formatDurationFromSeconds(t.getReadingTime(record["words"],min_age))
+
 	lom = makeLOM(r)
 
 	o = getEmptyOaidcDict()
