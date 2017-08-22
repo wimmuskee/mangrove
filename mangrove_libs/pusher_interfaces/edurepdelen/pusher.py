@@ -36,7 +36,6 @@ class Pusher(Interface):
 			exit()
 
 
-	# TODO, this does not work without xml
 	def delete(self,identifier):
 		try:
 			r = requests.delete(self.endpoint + self.endpoint_key + "/learning_object/" + identifier)
