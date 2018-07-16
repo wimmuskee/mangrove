@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
-import MySQLdb
-import MySQLdb.cursors
+import pymysql
+import pymysql.cursors
 from time import time
 
 
 class Database:
 	def __init__(self,db_host,db_user,db_passwd,db_name):
-		self.DB = MySQLdb.connect(host=db_host,user=db_user, passwd=db_passwd,db=db_name,use_unicode=1,cursorclass=MySQLdb.cursors.DictCursor)
-		self.DB.set_character_set('utf8')
-
+		self.DB = pymysql.connect(host=db_host,user=db_user, password=db_passwd,db=db_name,use_unicode=1,charset='utf8',cursorclass=pymysql.cursors.DictCursor)
 
 	def setCollectionInfo(self,collection):
 		c = self.DB.cursor()
