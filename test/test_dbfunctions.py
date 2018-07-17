@@ -36,5 +36,5 @@ class DbfunctionsTestCase(TestCase):
 	def test_insert_record(self):
 		self.DB.setCollectionInfo("default_collection")
 		self.DB.insertRecord("newid:4", "","","test","orig:4")
-		record = self.DB.getRecordById(2)
+		record = self.DB.getRecordByOriginalId("orig:4")
 		self.assertEqual(record["original_id"],"orig:4")

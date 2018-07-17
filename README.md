@@ -6,14 +6,14 @@ Dependencies listed for each interface. Currently tested for Python 2.7.
 
 ## generic ##
 - [lxml](http://lxml.de/)
-- [MySQLdb](http://sourceforge.net/projects/mysql-python/)
+- [PyMySQL](https://github.com/PyMySQL/PyMySQL)
 - [configparser](https://pypi.python.org/pypi/configparser/)
 - [prettytable](https://code.google.com/p/prettytable/) for admin
 
 ## mediawiki ##
 - [NLTK](http://nltk.org/) with stopwords and punkt tokenizer
 - [readability-score](http://github.com/wimmuskee/readability-score)
-- [wikipedia-extractor](https://github.com/bwbaugh/wikipedia-extractor)
+- [mwparserfromhell](https://github.com/earwig/mwparserfromhell)
 - [requests](http://python-requests.org)
 
 ## youtube ##
@@ -65,6 +65,7 @@ context_dynamic=0
 age_range=8-12
 # whether or not to use the defined proxy
 proxy_use=false
+list_prefix=Lijst van
 ```
 
 # roadmap #
@@ -75,3 +76,6 @@ The following things to do for a 1.0
 - [ ] fix reporter, for generic data storage
 - [ ] command for new source, generating config file, and database entry
 - [ ] unittests
+- [ ] python3
+- [ ] pylom class
+- [ ] better exceptions and logging

@@ -21,6 +21,7 @@ proxy_use=false
 context_static=PO
 context_dynamic=0
 age_range=8-12
+list_prefix=Lijst van
 
 [youtube]
 module=youtube

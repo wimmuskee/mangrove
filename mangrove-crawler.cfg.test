@@ -11,3 +11,12 @@ fs_workbase=/tmp/mangrove_workdir
 
 [default_collection]
 proxy_use=true
+
+[mediawiki]
+proxy_use=false
+wiki=Test Wiki
+host=http://examplewiki.com/
+context_static=PO|VO
+context_dynamic=0
+age_range=8-12
+list_prefix=Lijst van

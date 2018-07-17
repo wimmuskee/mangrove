@@ -1,42 +1,42 @@
 # -*- coding: utf-8 -*-
 
-import common
 from mangrove_libs.textprocessing import TextProcessor
-from mangrove_libs.common import downloadFile, checkLocal, checkPrograms
+from mangrove_libs.common import downloadFile, checkLocal, checkPrograms, getTimestampFromZuluDT
 from mangrove_libs.interface import Interface
 from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 import re
-from bz2 import BZ2File
-from subprocess import Popen, PIPE, call
-from os import walk, path, listdir
+from subprocess import call
+from os import path
+from lxml import etree
+import mwparserfromhell
 import datetime
 
 class Harvester(Interface):
 	"""mediawiki harvester"""
 
-	def __init__(self,config):
+	def __init__(self,config,testing=False):
 		Interface.__init__(self, config)
 		Interface.handleRequestsProxy(self)
-		self.re_docid = re.compile(r'id="([0-9]*?)"')
 		self.re_htmltags = re.compile('<[^<]+?>')
-		self.pages_to_update = {}
+		self.ns = {'mw': 'http://www.mediawiki.org/xml/export-0.10/'}
+		self.record = {}
+
+		# if True, execute some pass-through pipeline functions separately
+		self.testing = testing
 
 		if checkLocal:
 			self.share_prefix = "share/interfaces/mediawiki/"
 		else:
 			self.share_prefix = "/usr/share/mangrove/interfaces/mediawiki/"
 
-		checkPrograms(["gunzip", "bunzip2", "WikiExtractor.py", "mysql"])
+		checkPrograms(["gunzip", "bunzip2", "mysql"])
 
 
 	def harvest(self,part=""):
-		""" Getting the data in 4 steps, parsing is distributed in parseExtracts """
+		""" Wrapper for the harvestproces, individual record store is called in readXmlExport(). """
 		self.getData()
-		self.importData()
-		self.getRecordsToUpdate()
-		self.preprocessText()
-		self.parseExtracts()
+		self.readXmlExport()
 		self.cleanup()
 
 
@@ -50,14 +50,6 @@ class Harvester(Interface):
 		else:
 			src_prefix = self.config["download_path"] + self.config["wiki"] + "-"
 
-		self.logger.info("Downloading page sql file")
-		page_sql_gz = self.FS.workdir + "/page.sql.gz"
-		downloadFile(self.httpProxy, src_prefix + "latest-page.sql.gz", page_sql_gz)
-
-		self.logger.info("Unpacking page sql file")
-		if path.isfile(page_sql_gz):
-			call("gunzip " + page_sql_gz, shell=True)
-
 		self.logger.info("Downloading page xml file")
 		page_xml_bz = self.FS.workdir + "/pages-articles.xml.bz2"
 		downloadFile(self.httpProxy, src_prefix + "latest-pages-articles.xml.bz2", page_xml_bz)
@@ -66,111 +58,69 @@ class Harvester(Interface):
 		if path.isfile(page_xml_bz):
 			call("bunzip2 " + page_xml_bz, shell=True)
 
-		self.logger.info("Downloading categories sql file")
-		categories_sql_gz = self.FS.workdir + "/categorylinks.sql.gz"
-		downloadFile(self.httpProxy, src_prefix + "latest-categorylinks.sql.gz", categories_sql_gz)
-		
-		self.logger.info("Unpacking categories sql file")
-		if path.isfile(categories_sql_gz):
-			call("gunzip " + categories_sql_gz, shell=True)
-
 		self.logger.info("Removing downloaded files")
-		self.FS.removeFile(page_sql_gz)
 		self.FS.removeFile(page_xml_bz)
-		self.FS.removeFile(categories_sql_gz)
 
+	def readXmlExport(self):
+		""" Reads the downloaded article xml, and extracts the required information.
+		The parsing occurs iterated, so all extracted information is stored in the same process."""
+		for event, elem in etree.iterparse(self.FS.workdir + "/pages-articles.xml", events=('start', 'end', 'start-ns', 'end-ns')):
+			if event == "start":
+				if elem.tag == "{" + self.ns["mw"] + "}page":
+					self.recordmeta = { "title": None, "revision_id": None, "timestamp": None }
+					self.recordtext = ""
 
-	""" downloaded sql + custom sql to trim the total set """
-	def importData(self):
-		self.logger.info("Importing data in database")
-		sqlfiles = [self.FS.workdir + "/page.sql", self.FS.workdir + "/categorylinks.sql"]
-		sqlfiles.append(self.share_prefix + "importCategories.sql")
-		sqlfiles.append(self.share_prefix + "importCategoryRelations.sql")
-		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_removeSmallPages.sql")
-		sqlfiles.append(self.share_prefix + self.config["wiki"] + "_renameTables.sql")
+					wiki_ns = self.__getXpathValue(elem,"mw:ns/text()")
+					bytesize = self.__getXpathValue(elem,"mw:revision/mw:text/@bytes")
 
-		for sql in sqlfiles:
-			process = Popen('mysql %s -u%s -p%s' % (self.config["db_name"], self.config["db_user"], self.config["db_passwd"]), stdout=PIPE, stdin=PIPE, shell=True)
-			output = process.communicate(file(sql).read())
+					if wiki_ns != "0" or not bytesize:
+						continue
+					if int(bytesize) < 2000:
+						continue
 
+					self.recordmeta["title"] = self.__getXpathValue(elem,"mw:title/text()")
+					self.recordmeta["revision_id"] = self.__getXpathValue(elem,"mw:revision/mw:id/text()")
+					self.recordmeta["timestamp"] = self.__getXpathValue(elem,"mw:revision/mw:timestamp/text()")
 
-	def getRecordsToUpdate(self):
-		""" Compare <source>_page table with oairecords table for this collection, and
-		get the page_ids for the records that need to be updated."""
-		c = self.DB.DB.cursor()
-		c.execute("SELECT page_id AS id, page_title AS title, page_touched AS touched, page_latest AS lastrev_id FROM " + self.config["wiki"] + "_page")
-		page_data = c.fetchall()
-		c.close()
+					meta_complete = True
+					for key in self.recordmeta:
+						if not self.recordmeta[key]:
+							meta_complete = False
 
-		for page in page_data:
-			oairecord = self.DB.getRecordByOriginalId(page["title"])
-			if oairecord:
-				# page exists already in oai, find out if updated
-				ts_touched = common.makeTimestamp(page["touched"])
-				if ts_touched > int(oairecord["updated"]):
-					self.pages_to_update[str(page["id"])] = { "touched": ts_touched, "title": page["title"], "lastrev_id": page["lastrev_id"] }
-			else:
-				self.pages_to_update[str(page["id"])] = { "touched": ts_touched, "title": page["title"], "lastrev_id": page["lastrev_id"] }
+					if not meta_complete or not self.__checkListOf() or not self.__checkUpdate():
+						continue
 
+					wiki_text = self.__getXpathValue(elem,"mw:revision/mw:text/text()")
+					if wiki_text:
+						wikicode = mwparserfromhell.parse(wiki_text)
+						self.recordtext = wikicode.strip_code(True, True)
 
-	def preprocessText(self):
-		self.logger.info("Preprocessing text")
-		outputdir = self.FS.workdir + "/extract"
-		inputfile = self.FS.workdir + "/pages-articles.xml"
-		script = self.share_prefix + "WikiExtractorWrapper.sh"
-		call([script, inputfile, outputdir])
+					if self.recordtext and not self.testing:
+						self.setData()
 
+				elem.clear()
 
-	def parseExtracts(self):
-		self.logger.info("Parse text extracts")
-		for (dirpath, dirnames, filenames) in walk(self.FS.workdir + "/extract"):
-			for bzfile in filenames:
-				self.parseExtract(dirpath + "/" + bzfile)
-
-
-	def parseExtract(self,bzfile):
-		with BZ2File(bzfile, 'r') as f:
-			text = f.read()
-
-		"""
-		If line starts with <doc, make new article, fill it with lines,
-		until the next </doc> is found, process the article, and start over.
-		"""
-		for line in text.split('\n'):
-			if line[:4] == "<doc":
-				article = ""
-				id = self.re_docid.search(line).group(1)
-			elif line[:6] == "</doc>":
-				if id in self.pages_to_update:
-					self.setData(self.pages_to_update[id],article)
-			else:
-				article += "\n" + line
-
-
-	def setData(self,metadata,text):
+	def setData(self):
 		""" Basically gets all data with some helper functions, and stores it. """
-		r = self.__getDefaultMediawikiRecord()
-		r["publisher"] = self.config["wiki"]
-		r["identifier"] = [ { "catalog": "URI", "value": self.config["host"] + metadata["title"] } ]
-		r["version"] = datetime.datetime.fromtimestamp(metadata["touched"]).strftime('%d%m%Y')
-		r["publishdate"] = datetime.datetime.fromtimestamp(metadata["touched"]).strftime('%Y-%m-%dT%H:%M:%SZ')
-		r["location"] = self.config["host"] + metadata["title"]
-		r["isversionof"] =  self.config["host"] + "/index.php?title=" + metadata["title"] + "&oldid=" + str(metadata["lastrev_id"])
+		self.__setDefaultMediawikiRecord()
+		url_title = self.recordmeta["title"].replace(" ","_")
+		lines = self.recordtext.split('\n')
 
-		""" now fill with input """
-		textproc = TextProcessor(text,'nl_NL')
-		lines = textproc.text.split('\n')
-		""" Not taking first line because before each line, a linebreak is inserted. """
-		r["title"] = lines[1].decode('utf-8')
-		r["typicalagerange"] = str(textproc.calculator.min_age) + "+"
-		r["typicallearningtime"] = formatDurationFromSeconds(textproc.getReadingTime(textproc.calculator.scores['word_count'],textproc.calculator.min_age))
+		self.record["title"] = self.recordmeta["title"]
+		self.record["description"] = self.re_htmltags.sub("",lines[0])
+		self.record["publisher"] = self.config["wiki"]
+		self.record["identifier"] = [ { "catalog": "URI", "value": self.config["host"] + url_title } ]
+		self.record["version"] = self.recordmeta["timestamp"][:10].replace("-","")
+		self.record["publishdate"] = self.recordmeta["timestamp"]
+		self.record["location"] = self.config["host"] + url_title
+		self.record["isversionof"] = self.config["host"] + "index.php?title=" + url_title + "&oldid=" + self.recordmeta["revision_id"]
 
-		keywords =  textproc.getKeywords()
-		for kw in keywords:
-			r["keywords"].append(kw.decode('utf-8'))
+		textproc = TextProcessor(self.recordtext,'nl_NL')
+		self.record["typicalagerange"] = str(textproc.calculator.min_age) + "+"
+		self.record["typicallearningtime"] = formatDurationFromSeconds(textproc.getReadingTime(textproc.calculator.scores['word_count'],textproc.calculator.min_age))
 
-		if len(lines) >= 4:
-			r["description"] = self.re_htmltags.sub("",lines[3]).decode('utf-8')
+		for kw in textproc.getKeywords():
+			self.record["keywords"].append(kw)
 
 		contexts = []
 		if self.config["context_static"]:
@@ -180,32 +130,55 @@ class Harvester(Interface):
 				contexts.append("PO")
 			elif textproc.calculator.min_age > 12 and textproc.calculator.min_age < 19:
 				contexts.append("VO")
-		r["context"] = list(set(contexts))
+		self.record["context"] = list(set(contexts))
 
-		# override some if config
+		## override some if config
 		if self.config["age_range"]:
-			r["typicalagerange"] = self.config["age_range"]
+			self.record["typicalagerange"] = self.config["age_range"]
 			min_age = re.search(r'^\d+', self.config["age_range"]).group(0)
-			r["typicallearningtime"] = formatDurationFromSeconds(textproc.getReadingTime(textproc.calculator.scores['word_count'],min_age))
+			self.record["typicallearningtime"] = formatDurationFromSeconds(textproc.getReadingTime(textproc.calculator.scores['word_count'],min_age))
 
-		lom = makeLOM(r)
-		oaidc = makeOAIDC(self.__getOaidcRecord(r))
+		lom = makeLOM(self.record)
+		oaidc = makeOAIDC(self.__getOaidcRecord(self.record))
 
-		# and store
-		self.storeResult({"original_id": metadata["title"]},None,lom,oaidc)
-
+		## and store
+		if not self.testing:
+			self.storeResult({"original_id": url_title},None,lom,oaidc)
 
 	def cleanup(self):
 		self.logger.info("Cleaning up workdir files")
-		self.FS.removeFile(self.FS.workdir + "/categorylinks.sql")
-		self.FS.removeFile(self.FS.workdir + "/page.sql")
 		self.FS.removeFile(self.FS.workdir + "/pages-articles.xml")
 
-		for subdir in listdir(self.FS.workdir + "/extract"):
-			self.FS.removeDir(self.FS.workdir + "/extract/" + subdir)
 
+	def __getXpathValue(self,element,xpath):
+		value = element.xpath(xpath, namespaces=self.ns)
+		if value:
+			return value[0]
+		else:
+			return None
 
-	def __getDefaultMediawikiRecord(self):
+	def __checkUpdate(self):
+		""" Checks if record timestamp is higher than one in oairecords."""
+		url_title = self.recordmeta["title"].replace(" ","_")
+		record_updated = getTimestampFromZuluDT(self.recordmeta["timestamp"])
+
+		oairecord = self.DB.getRecordByOriginalId(url_title)
+		if oairecord:
+			if record_updated > int(oairecord["updated"]):
+				return True
+			else:
+				return False
+		else:
+			return True
+
+	def __checkListOf(self):
+		""" We don't want listpages, check if title starts with defined prefix."""
+		prefixlen = len(self.config["list_prefix"])
+		if self.recordmeta["title"][:prefixlen] == self.config["list_prefix"]:
+			return False
+		return True
+
+	def __setDefaultMediawikiRecord(self):
 		r = getEmptyLomDict()
 		r["cost"] = "no"
 		r["language"] = "nl"
@@ -217,7 +190,7 @@ class Harvester(Interface):
 		r["learningresourcetype"] = "informatiebron"
 		r["interactivitytype"] = "expositive"
 		r["copyrightandotherrestrictions"] = "cc-by-sa-30"
-		return r
+		self.record = r
 
 	def __getOaidcRecord(self,record):
 		r = getEmptyOaidcDict()
