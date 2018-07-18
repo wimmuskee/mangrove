@@ -16,7 +16,7 @@ class CrawlerMediawikiTestCase(TestCase):
 
 	@classmethod
 	def tearDownClass(self):
-		# todo, clean up filesystem
+		self.Harvester.FS.cleanupFS()
 		del self.Harvester
 		self.DB.cleanupDB()
 

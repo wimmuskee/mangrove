@@ -23,13 +23,11 @@ class Filesystem:
 		with open(targetdir + "/" + identifier, "w") as f:
 			f.write(data)
 
-
 	def removeDir(self,dir):
 		try:
 			rmtree(dir)
 		except:
 			pass
-
 
 	def removeFile(self,filename):
 		try:
@@ -37,7 +35,11 @@ class Filesystem:
 		except OSError:
 			pass
 
-
 	def makeDir(self,dir):
 		if not os.path.exists(dir):
 			os.makedirs(dir)
+
+	def cleanupFS(self):
+		""" Remove record and workdir after testing. """
+		self.removeDir(self.recorddir)
+		self.removeDir(self.workdir)

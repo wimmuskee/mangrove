@@ -15,6 +15,7 @@ class InterfaceTestCase(TestCase):
 
 	@classmethod
 	def tearDownClass(self):
+		self.interface.FS.cleanupFS()
 		del self.interface
 		self.DB.cleanupDB()
 
