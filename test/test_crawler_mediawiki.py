@@ -7,8 +7,7 @@ from shutil import copyfile
 class CrawlerMediawikiTestCase(TestCase):
 	@classmethod
 	def setUpClass(self):
-		config = common.getConfig("mangrove-crawler.cfg.test", "common")
-		config.update(common.getConfig("mangrove-crawler.cfg.test","mediawiki"))
+		config = common.getConfig("mangrove-crawler-config.json.test", "mediawiki")
 		# init db first
 		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"])
 		self.DB.initDB()

@@ -7,7 +7,7 @@ from storage.mysql import Database
 class AdminfunctionsTestCase(TestCase):
 	@classmethod
 	def setUpClass(self):
-		self.config = common.getConfig("mangrove-crawler.cfg.test", "common")
+		self.config = common.getConfig("mangrove-crawler-config.json.test", "common")
 		self.DB = Database(self.config["db_host"],self.config["db_user"],self.config["db_passwd"],self.config["db_name"])
 
 	def setUp(self):

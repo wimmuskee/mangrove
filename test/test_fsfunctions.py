@@ -6,7 +6,7 @@ from storage.filesystem import Filesystem
 class FsfunctionsTestCase(TestCase):
 	@classmethod
 	def setUpClass(self):
-		config = common.getConfig("mangrove-crawler.cfg.test", "common")
+		config = common.getConfig("mangrove-crawler-config.json.test", "common")
 		config["configuration"] = "test_collection"
 		self.FS = Filesystem(config)
 

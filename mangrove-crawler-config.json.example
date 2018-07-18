@@ -1,0 +1,33 @@
+{
+    "common": {
+        "proxy_host": "123.123.23.23",
+        "proxy_port": "3128",
+        "db_host": "localhost",
+        "db_user": "root",
+        "db_passwd": "******",
+        "db_name": "mangrove",
+        "fs_recordbase": "/var/mangrove_records",
+        "fs_workbase": "/var/mangrove_workdir"
+    },
+    "wikipedia_nl": {
+        "proxy_use": false,
+        "module": "mediawiki",
+        "wiki": "nlwiki",
+        "host": "https://nl.wikipedia.org/wiki/",
+        "download_path": "http://dumps.wikimedia.org/nlwiki/latest/",
+        "context_static": "PO",
+        "context_dynamic": false,
+        "age_range": "8-12",
+        "list_prefix": "Lijst van"
+    },
+    "youtube": {
+        "proxy_use": false,
+        "module": "youtube",
+        "developer_key": "*****"
+    },
+    "khanacademy": {
+        "proxy_use": false,
+        "module": "khanacademy",
+        "developer_key": "*****"
+    }
+}

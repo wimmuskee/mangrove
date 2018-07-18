@@ -3,37 +3,22 @@
 This module contains common functions
 for the mangrove crawler.
 
-Wim Muskee, 2013-2017
+Wim Muskee, 2013-2018
 wimmuskee@gmail.com
 
 License: GPL-3
 """
 
 def getConfig(configfile,section):
-	import ConfigParser
-	Config = ConfigParser.ConfigParser()
-	Config.read(configfile)
+	import json
+	with open(configfile, "r") as f:
+		configdata = json.loads(f.read())
 
-	config_options = {}
-	config_options["configuration"] = section
-	options = Config.options(section)
-	for option in options:
-		try:
-			if option == "proxy_use":
-				config_options["proxy_use"] = Config.getboolean(section, "proxy_use")
-			else:
-				config_options[option] = Config.get(section, option)
-
-			if config_options[option] == "0":
-				config_options[option] = None
-
-			if config_options[option] == -1:
-				DebugPrint("skip: %s" % option)
-		except:
-			print("exception on %s!" % option)
-			config_options[option] = None
-
-	return config_options
+	config = {}
+	config.update(configdata["common"])
+	config.update(configdata[section])
+	config["configuration"] = section
+	return config
 
 
 """ Dynamically import a method """

@@ -21,7 +21,7 @@ stats.add_argument('-s', '--stats', help="record statistics", action="store_true
 
 
 args = parser.parse_args()
-configfile = "mangrove-crawler.cfg"
+configfile = "mangrove-crawler-config.json"
 
 if args.configfile:
 	configfile = args.configfile[0]

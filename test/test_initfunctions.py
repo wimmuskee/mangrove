@@ -10,5 +10,9 @@ class InitfunctionsTestCase(TestCase):
 		common.checkPrograms(["python"])
 
 	def test_common_config(self):
-		config = common.getConfig("mangrove-crawler.cfg.test", "common")
+		config = common.getConfig("mangrove-crawler-config.json.test", "common")
 		self.assertEqual(config["proxy_port"], "3128")
+
+	def test_configuration_config(self):
+		config = common.getConfig("mangrove-crawler-config.json.test", "default_collection")
+		self.assertEqual(config["proxy_host"], "localhost")

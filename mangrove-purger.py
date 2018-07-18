@@ -21,7 +21,7 @@ parser.add_argument('-p', '--part', nargs=1, help='Identifiable subset of provid
 parser.add_argument('-c', '--config', nargs=1, help='Config file', metavar='configfile', dest='configfile')
 
 args = parser.parse_args()
-configfile = "mangrove-crawler.cfg"
+configfile = "mangrove-crawler-config.json"
 
 if args.configfile:
 	configfile = args.configfile[0]
@@ -42,15 +42,9 @@ if args.part:
 	part = args.part[0]
 
 
-""" get common config """
+# get config
 try:
-	config = common.getConfig(configfile,"common")
-except:
-	parser.error('No common config defined')
-
-""" merge config for source """
-try:
-	config.update(common.getConfig(configfile,source))
+	config = common.getConfig(configfile,source)
 except:
 	parser.error('Invalid source config: ' + source)
 

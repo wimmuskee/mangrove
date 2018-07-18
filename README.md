@@ -7,7 +7,6 @@ Dependencies listed for each interface. Currently tested for Python 2.7.
 ## generic ##
 - [lxml](http://lxml.de/)
 - [PyMySQL](https://github.com/PyMySQL/PyMySQL)
-- [configparser](https://pypi.python.org/pypi/configparser/)
 - [prettytable](https://code.google.com/p/prettytable/) for admin
 
 ## mediawiki ##
@@ -37,35 +36,30 @@ The mangrove-crawler start harvesting a source by providing:
 
 Sources can be defined in the config file as sections. The source is equal to the config section header, and the configuration part needs to correspond to the collection name in the collections database table. Usually, the section header is equal to the collection name.
 Here's an example for source "wikipedia_nl" with comments:
-```Ini
-[common]
-# common configuration to be used by all sources
-proxy_host=123.123.23.23
-proxy_port=3128
-# database
-db_host=localhost
-db_user=root
-db_passwd=*******
-db_name=mangrove
-# filesystem
-fs_recordbase=/var/mangrove-records
-fs_workbase=/var/mangrove-workdir
-
-[wikipedia_nl]
-# the interface module to use (in mangrove_crawler/interfaces)
-module=mediawiki
-# some module specific vars
-wiki=nlwiki
-setspec=wikipedia_nl
-download_path=http://dumps.wikimedia.org/nlwiki/latest/
-host=https://nl.wikipedia.org/wiki/
-
-context_static=PO
-context_dynamic=0
-age_range=8-12
-# whether or not to use the defined proxy
-proxy_use=false
-list_prefix=Lijst van
+```js
+{
+    "common": {
+        "proxy_host": "123.123.23.23",
+        "proxy_port": "3128",
+        "db_host": "localhost",
+        "db_user": "root",
+        "db_passwd": "******",
+        "db_name": "mangrove",
+        "fs_recordbase": "/var/mangrove_records",
+        "fs_workbase": "/var/mangrove_workdir"
+    },
+    "wikipedia_nl": {
+        "proxy_use": false,
+        "module": "mediawiki",
+        "wiki": "nlwiki",
+        "host": "https://nl.wikipedia.org/wiki/",
+        "download_path": "http://dumps.wikimedia.org/nlwiki/latest/",
+        "context_static": "PO",
+        "context_dynamic": false,
+        "age_range": "8-12",
+        "list_prefix": "Lijst van"
+    }
+}
 ```
 
 # roadmap #

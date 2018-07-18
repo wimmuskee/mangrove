@@ -7,8 +7,7 @@ import re
 class InterfaceTestCase(TestCase):
 	@classmethod
 	def setUpClass(self):
-		config = common.getConfig("mangrove-crawler.cfg.test", "common")
-		config.update(common.getConfig("mangrove-crawler.cfg.test", "default_collection"))
+		config = common.getConfig("mangrove-crawler-config.json.test", "default_collection")
 		self.DB = Database(config["db_host"],config["db_user"],config["db_passwd"],config["db_name"])
 		self.DB.initDB()
 		self.interface = Interface(config)
@@ -34,7 +33,7 @@ class InterfaceTestCase(TestCase):
 
 	def test_requests_proxy(self):
 		self.interface.handleRequestsProxy()
-		self.assertEqual(self.interface.httpProxy["http"], "123.123.23.23:3128")
+		self.assertEqual(self.interface.httpProxy["http"], "localhost:3128")
 
 	def test_new_identifier_uuid(self):
 		identifier = self.interface.getNewIdentifier()
