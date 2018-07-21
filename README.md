@@ -2,7 +2,8 @@
 Gathers metadata and transforms it to learning object metadata.
 
 # dependencies #
-Dependencies listed for each interface. Currently tested for Python 2.7.
+Dependencies listed for each interface. Currently tested for Python 2.7 and 3.6.
+Tests fail for 3.4 and 3.5 (test process goes to sleep in mysql execution).
 
 ## generic ##
 - [lxml](http://lxml.de/)
@@ -70,6 +71,5 @@ The following things to do for a 1.0
 - [ ] fix reporter, for generic data storage
 - [ ] command for new source, generating config file, and database entry
 - [ ] unittests
-- [ ] python3
 - [ ] pylom class
 - [ ] better exceptions and logging
