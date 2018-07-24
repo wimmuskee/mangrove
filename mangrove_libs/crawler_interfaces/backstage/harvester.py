@@ -10,11 +10,10 @@
 
 import common
 from mangrove_libs.interface import Interface
-from formatter.nllom import makeLOM, getEmptyLomDict
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 from time import sleep
 from datetime import datetime
-
+from pylom.writer import LomWriter
 
 class Harvester(Interface):
 	"""backstage harvester"""
@@ -22,7 +21,8 @@ class Harvester(Interface):
 	def __init__(self,config):
 		Interface.__init__(self, config)
 		Interface.handleRequestsProxy(self)
-
+		Interface.setLomVocabSources(self)
+		self.record = {}
 
 	def harvest(self,collection=""):
 		self.logger.info("Starting harvesting")
@@ -37,25 +37,26 @@ class Harvester(Interface):
 
 		for video_id in result["videos"].keys():
 			v = result["videos"][video_id]
-			r = self.getDefaultRecord()
+			self.__setDefaultRecord()
 			# title might also be a combination of program title, title and subtitle, check that later
-			r["original_id"] = video_id
-			r["title"] = v["item"]["_source"]["title"]
+			self.record["title"] = v["item"]["_source"]["title"]
 			r["location"] = v["item"]["_source"]["meta"]["original_object_urls"]["html"]
 			for author in v["metadata"]["authors"]:
-				r["author"].append({ "fn": author})
+				self.record["contribute"].append( [{"role": "author", "entity": "BEGIN:VCARD\nFN:" + str(author) + "\nEND:VCARD"}]
 			if "description" in v["item"]["_source"]:
-				r["description"] = v["item"]["_source"]["description"]
+				self.record["description"] = v["item"]["_source"]["description"]
 			if "tags" in v["item"]["_source"]:
-				r["keywords"] = v["item"]["_source"]["tags"]
+				self.record["keyword"] = v["item"]["_source"]["tags"]
 			if "ageGroups" in v["item"]["_source"]:
-				r["typicalagerange"] = v["item"]["_source"]["ageGroups"]
+				self.record["educational"][0]["typicalagerange"] = v["item"]["_source"]["ageGroups"]
 			if "tijdsduur" in v["metadata"]:
-				r["duration"] = common.getDuration(v["metadata"]["tijdsduur"] )
+				self.record["educational"][0]["duration"] = common.getDuration(v["metadata"]["tijdsduur"] )
 
-			lom = makeLOM(r)
+			lomwriter = LomWriter("nl")
+			lomwriter.vocabulary_sources.update(self.vocab_sources)
+			lomwriter.parseDict(self.record)
 			oaidc = makeOAIDC(self.getOaidcRecord(r))
-			self.storeResult(r,self.config["configuration"],lom,oaidc)
+			self.storeResult({"original_id": video_id},self.config["configuration"],lomwriter.lom,oaidc)
 
 		if result["meta"]["token"] < result["meta"]["total"]:
 			self.logger.debug( "token = " + str(result["meta"]["token"]) + ", total = " + str(result["meta"]["total"]) )
@@ -63,24 +64,25 @@ class Harvester(Interface):
 			self.getPage(fromdate,result["meta"]["token"])
 
 
-	def getDefaultRecord(self):
-		r = getEmptyLomDict()
-		r["publisher"] = self.config["publisher"]
+	def __setDefaultRecord(self):
+		r = {}
+		r["contribute"] = [{"role": "publisher", "entity": "BEGIN:VCARD\nFN:" + str(self.config["publisher"]) + "\nEND:VCARD"}]
 		r["cost"] = "no"
 		r["language"] = "nl"
 		r["aggregationlevel"] = "2"
-		r["metalanguage"] = "nl"
-		r["learningresourcetype"] = "informatiebron"
-		r["intendedenduserrole"] = "learner"
-		return r
+		r["educational"] = [{
+			"intendedenduserrole": "learner",
+			"learningresourcetype": "informatiebron"
+		}]
+		self.record = r
 
 
 	def getOaidcRecord(self,record):
 		r = getEmptyOaidcDict()
 		r["title"] = record["title"]
 		r["description"] = record["description"]
-		r["subject"] = record["keywords"]
-		r["publisher"] = record["publisher"]
+		r["subject"] = record["keyword"]
+		r["publisher"] = self.config["publisher"]
 		r["identifier"] = record["location"]
 		r["language"] = record["language"]
 		return r
