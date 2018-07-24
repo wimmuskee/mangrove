@@ -3,7 +3,6 @@
 from mangrove_libs.textprocessing import TextProcessor
 from mangrove_libs.common import downloadFile, checkLocal, checkPrograms, getTimestampFromZuluDT
 from mangrove_libs.interface import Interface
-from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 import re
 from subprocess import call
@@ -11,6 +10,7 @@ from os import path
 from lxml import etree
 import mwparserfromhell
 import datetime
+from pylom.writer import LomWriter
 
 class Harvester(Interface):
 	"""mediawiki harvester"""
@@ -18,6 +18,7 @@ class Harvester(Interface):
 	def __init__(self,config,testing=False):
 		Interface.__init__(self, config)
 		Interface.handleRequestsProxy(self)
+		Interface.setLomVocabSources(self)
 		self.re_htmltags = re.compile('<[^<]+?>')
 		self.ns = {'mw': 'http://www.mediawiki.org/xml/export-0.10/'}
 		self.record = {}
@@ -103,24 +104,25 @@ class Harvester(Interface):
 	def setData(self):
 		""" Basically gets all data with some helper functions, and stores it. """
 		self.__setDefaultMediawikiRecord()
+
 		url_title = self.recordmeta["title"].replace(" ","_")
+		revision_url = str(self.config["host"] + "index.php?title=" + url_title + "&oldid=" + self.recordmeta["revision_id"])
 		lines = self.recordtext.split('\n')
 
-		self.record["title"] = self.recordmeta["title"]
 		self.record["description"] = self.re_htmltags.sub("",lines[0])
-		self.record["publisher"] = self.config["wiki"]
 		self.record["identifier"] = [ { "catalog": "URI", "value": self.config["host"] + url_title } ]
-		self.record["version"] = self.recordmeta["timestamp"][:10].replace("-","")
-		self.record["publishdate"] = self.recordmeta["timestamp"]
 		self.record["location"] = self.config["host"] + url_title
-		self.record["isversionof"] = self.config["host"] + "index.php?title=" + url_title + "&oldid=" + self.recordmeta["revision_id"]
+		self.record["relation"] = [{ 
+			"kind": "isversionof", 
+			"resource": { "description": "De metadata is op deze revisie gebaseerd.", "catalogentry": [ {"catalog": "URI", "entry": revision_url } ] }
+		}]
 
 		textproc = TextProcessor(self.recordtext,'nl_NL')
-		self.record["typicalagerange"] = str(textproc.calculator.min_age) + "+"
-		self.record["typicallearningtime"] = formatDurationFromSeconds(textproc.getReadingTime(textproc.calculator.scores['word_count'],textproc.calculator.min_age))
+		self.record["educational"][0]["typicalagerange"] = str(textproc.calculator.min_age) + "+"
+		self.record["educational"][0]["typicallearningtime"] = "PT" + str(textproc.getReadingTime(textproc.calculator.scores['word_count'],textproc.calculator.min_age)) + "S"
 
 		for kw in textproc.getKeywords():
-			self.record["keywords"].append(kw)
+			self.record["keyword"].append(kw)
 
 		contexts = []
 		if self.config["context_static"]:
@@ -130,20 +132,23 @@ class Harvester(Interface):
 				contexts.append("PO")
 			elif textproc.calculator.min_age > 12 and textproc.calculator.min_age < 19:
 				contexts.append("VO")
-		self.record["context"] = list(set(contexts))
+
+		self.record["educational"][0]["context"] = list(set(contexts))
 
 		## override some if config
 		if self.config["age_range"]:
-			self.record["typicalagerange"] = self.config["age_range"]
+			self.record["educational"][0]["typicalagerange"] = self.config["age_range"]
 			min_age = re.search(r'^\d+', self.config["age_range"]).group(0)
-			self.record["typicallearningtime"] = formatDurationFromSeconds(textproc.getReadingTime(textproc.calculator.scores['word_count'],min_age))
+			self.record["educational"][0]["typicallearningtime"] = "PT" + str(textproc.getReadingTime(textproc.calculator.scores['word_count'],min_age)) + "S"
 
-		lom = makeLOM(self.record)
+		lomwriter = LomWriter("nl")
+		lomwriter.vocabulary_sources.update(self.vocab_sources)
+		lomwriter.parseDict(self.record)
 		oaidc = makeOAIDC(self.__getOaidcRecord(self.record))
 
 		## and store
 		if not self.testing:
-			self.storeResult({"original_id": url_title},None,lom,oaidc)
+			self.storeResult({"original_id": url_title},None,lomwriter.lom,oaidc)
 
 	def cleanup(self):
 		self.logger.info("Cleaning up workdir files")
@@ -179,16 +184,23 @@ class Harvester(Interface):
 		return True
 
 	def __setDefaultMediawikiRecord(self):
-		r = getEmptyLomDict()
+		r = {}
+		r["title"] = self.recordmeta["title"]
+		r["keyword"] = []
 		r["cost"] = "no"
 		r["language"] = "nl"
 		r["aggregationlevel"] = "2"
 		r["metalanguage"] = "nl"
+		r["version"] = self.recordmeta["timestamp"][:10].replace("-","")
+		r["contribute"] = [{"role": "publisher", "entity": "BEGIN:VCARD\nFN:" + str(self.config["wiki"]) + "\nEND:VCARD", "date": self.recordmeta["timestamp"]}]
+		r["metadatascheme"] = ["LOMv1.0","nl_lom_v1p0"]
 		r["structure"] = "hierarchical"
 		r["format"] = "text/html"
-		r["intendedenduserrole"] = "learner"
-		r["learningresourcetype"] = "informatiebron"
-		r["interactivitytype"] = "expositive"
+		r["educational"] = [{
+			"interactivitytype": "expositive",
+			"intendedenduserrole": "learner",
+			"learningresourcetype": "informatiebron"
+		}]
 		r["copyrightandotherrestrictions"] = "cc-by-sa-30"
 		self.record = r
 
@@ -196,10 +208,10 @@ class Harvester(Interface):
 		r = getEmptyOaidcDict()
 		r["title"] = record["title"]
 		r["description"] = record["description"]
-		r["subject"] = record["keywords"]
-		r["publisher"] = record["publisher"]
+		r["subject"] = record["keyword"]
+		r["publisher"] = self.config["wiki"]
 		r["format"] = record["format"]
 		r["identifier"] = record["location"]
 		r["language"] = record["language"]
-		r["rights"] = record["copyright"]
+		r["rights"] = record["copyrightandotherrestrictions"]
 		return r

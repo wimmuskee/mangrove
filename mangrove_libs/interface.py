@@ -46,3 +46,14 @@ class Interface:
 		# always update fs record
 		self.FS.storeRecord("lom",identifier,lom)
 		self.FS.storeRecord("oaidc",identifier,oaidc)
+
+
+	def setLomVocabSources(self):
+		""" Called to set a sources dict alternative to the pylom default."""
+		self.vocab_sources = { 
+			"interactivitytype": "http://purl.edustandaard.nl/vdex_interactiontype_lomv1p0_20060628.xml",
+			"learningresourcetype": "http://purl.edustandaard.nl/vdex_learningresourcetype_czp_20060628.xml",
+			"context": "http://purl.edustandaard.nl/vdex_context_czp_20060628.xml",
+			"copyrightandotherrestrictions": "http://purl.edustandaard.nl/copyrightsandotherrestrictions_nllom_20131202",
+			"kind": "http://purl.edustandaard.nl/relation_kind_nllom_20131211"
+		}
