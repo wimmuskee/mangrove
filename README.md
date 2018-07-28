@@ -8,6 +8,7 @@ Tests fail for 3.4 and 3.5 (test process goes to sleep in mysql execution).
 ## generic ##
 - [lxml](http://lxml.de/)
 - [PyMySQL](https://github.com/PyMySQL/PyMySQL)
+- [pylom](https://github.com/kennisnet/pylom)
 - [prettytable](https://code.google.com/p/prettytable/) for admin
 
 ## mediawiki ##
@@ -72,5 +73,4 @@ The following things to do for a 1.0
 - [ ] fix reporter, for generic data storage
 - [ ] command for new source, generating config file, and database entry
 - [ ] unittests
-- [ ] pylom class
 - [ ] better exceptions and logging

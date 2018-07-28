@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from formatter.nllom import makeLOM, getEmptyLomDict, formatDurationFromSeconds
 from formatter.oaidc import makeOAIDC, getEmptyOaidcDict
 from formatter.skos import makeSKOS
 from mangrove_libs.interface import Interface
@@ -8,6 +7,7 @@ import json
 from rdflib.graph import Graph
 from rdflib import URIRef
 from rdflib.namespace import SKOS
+from pylom.writer import LomWriter
 
 # note:
 # to fully refresh this collection, because for instance you have a new mapping
@@ -19,6 +19,7 @@ class Harvester(Interface):
 	def __init__(self,config):
 		Interface.__init__(self, config)
 		Interface.handleRequestsProxy(self)
+		Interface.setLomVocabSources(self)
 
 		self.khanhost = "http://www.khanacademy.org/"
 		self.currenttopic = ""
@@ -60,42 +61,59 @@ class Harvester(Interface):
 
 
 	def parseNodeContent(self,node):
+		# ensure record published ts for check
+		published_ts = 0
+		if node["date_added"]:
+			published_ts = getTimestampFromZuluDT(node["date_added"])
+
 		if node["kind"] == "Topic":
 			self.currenttopic = self.normalizeKhanTopicId(node["ka_url"])
-		
-		if node["kind"] == "Video":
+
+		# if video, and published ts is newer, parse and store
+		if node["kind"] == "Video" and published_ts > self.DB.collection_updated:
 			r = self.getDefaultKhanRecord()
-			r["original_id"] = node["translated_youtube_id"]
 			r["title"] = node["title"]
 			r["description"] = node["description"]
 			if node["keywords"]:
-				r["keywords"] = node["keywords"].split(", ")
+				r["keyword"] = node["keywords"].split(", ")
 			if node["date_added"]:
 				r["publishdate"] = node["date_added"]
-			r["duration"] = formatDurationFromSeconds(node["duration"])
+			r["duration"] = "PT" + str(node["duration"]) + "S"
 			r["format"] = "video/x-flv"
 			r["location"] = "http://youtu.be/" + node["translated_youtube_id"]
-			r["learningresourcetype"] = "informatiebron"
-			r["intendedenduserrole"] = "learner"
-			r["copyright"] = node["ka_user_license"] + "-40"
-			r["thumbnail"] = node["image_url"]
+			r["educational"][0]"learningresourcetype"] = "informatiebron"
+			r["educational"][0]["intendedenduserrole"] = "learner"
+			r["copyrightandotherrestrictions"] = node["ka_user_license"] + "-40"
+			r["relation"] = [{"kind": "thumbnail", "resource": { "catalogentry": [ {"catalog": "URI", "entry": str(node["image_url"]) } ] } }]
 			r["identifier"] = [ 
-				{ "catalog": "Youtube", "value": node["translated_youtube_id"] }, 
-				{ "catalog": "URI", "value": node["ka_url"] }, 
-				{ "catalog": "URI", "value": "http://youtu.be/" + node["translated_youtube_id"] } ]
-			
-			for author in node["author_names"]:
-				r["author"].append({"fn": author})
-			
-			for o in self.mappinggraph.objects(URIRef(self.currenttopic), SKOS.closeMatch):
-				r["discipline"].append( [ self.findTaxons(list(),o) ] )
-			
-			for o in self.mappinggraph.objects(URIRef(self.currenttopic), SKOS.broadMatch):
-				r["discipline"].append( [ self.findTaxons(list(),o) ] )
+				{ "catalog": "Youtube", "value": str(node["translated_youtube_id"]) }, 
+				{ "catalog": "URI", "value": str(node["ka_url"]) }, 
+				{ "catalog": "URI", "value": "http://youtu.be/" + str(node["translated_youtube_id"]) } ]
 
-			lom = makeLOM(r)
+			r["contribute"] = [] 
+			if node["date_added"]:
+				r["contribute"].append({"role": "publisher", "entity": "BEGIN:VCARD\nFN:Khan Academy\nEND:VCARD", "date": str(node["date_added"])})
+			else:
+				r["contribute"].append({"role": "publisher", "entity": "BEGIN:VCARD\nFN:Khan Academy\nEND:VCARD"})
+
+			for author in node["author_names"]:
+				r["contribute"].append({"role": "author", "entity": "BEGIN:VCARD\nFN:" + str(author) + "\nEND:VCARD"})
+
+			discipline_taxonpaths = []
+			for o in self.mappinggraph.objects(URIRef(self.currenttopic), SKOS.closeMatch):
+				discipline_taxonpaths.append( { "source": "http://purl.edustandaard.nl/begrippenkader/", "taxon": self.findTaxons(list(),o) )
+
+			for o in self.mappinggraph.objects(URIRef(self.currenttopic), SKOS.broadMatch):
+				discipline_taxonpaths.append( { "source": "http://purl.edustandaard.nl/begrippenkader/", "taxon": self.findTaxons(list(),o) )
+
+			if discipline_taxonpaths:
+				r["classification"] = [ { "purpose": "discipline", "taxonpath": discipline_taxonpaths } ]
+
+			lomwriter = LomWriter("en")
+			lomwriter.vocabulary_sources.update(self.vocab_sources)
+			lomwriter.parseDict(r)
 			oaidc = makeOAIDC(self.getOaidcRecord(r))
-			self.storeResults(r,"video",lom,oaidc)
+			self.storeResults({"original_id": node["translated_youtube_id"],"video",lomwriter.lom,oaidc)
 
 		if "children" in node:
 			for cnode in node["children"]:
@@ -129,13 +147,11 @@ class Harvester(Interface):
 
 
 	def getDefaultKhanRecord(self):
-		r = getEmptyLomDict()
-		r["publisher"] = "Khan Academy"
+		r = {}
 		r["cost"] = "no"
 		r["language"] = "en"
 		r["aggregationlevel"] = "2"
 		r["metalanguage"] = "en"
-		r["publishdate"] = "1970-01-01T00:00:00Z"
 		return r
 
 
@@ -143,12 +159,12 @@ class Harvester(Interface):
 		r = getEmptyOaidcDict()
 		r["title"] = record["title"]
 		r["description"] = record["description"]
-		r["subject"] = record["keywords"]
-		r["publisher"] = record["publisher"]
+		r["subject"] = record["keyword"]
+		r["publisher"] = "Khan Academy"
 		r["format"] = record["format"]
 		r["identifier"] = record["location"]
 		r["language"] = record["language"]
-		r["rights"] = record["copyright"]
+		r["rights"] = record["copyrightandotherrestrictions"]
 		return r
 
 
@@ -160,27 +176,10 @@ class Harvester(Interface):
 		# checks if id is root, or id has multiple parents,
 		# in both cases, add the id, and break
 		if len(list(self.obkgraph.objects(URIRef(obkid), SKOS.broader))) != 1:
-			taxonpath.append( { "id": obkid[43:], "value": str(self.obkgraph.value( URIRef(obkid), SKOS.prefLabel) ) } )
+			taxonpath.append( { "id": obkid[43:], "entry": str(self.obkgraph.value( URIRef(obkid), SKOS.prefLabel) ) } )
 			return taxonpath
 		# only when an id has one parent, continue with the function
 		# for the parent id
 		elif len(list(self.obkgraph.objects(URIRef(obkid), SKOS.broader))) == 1:
-			taxonpath.append( { "id": obkid[43:], "value": str(self.obkgraph.value( URIRef(obkid), SKOS.prefLabel) ) } )
+			taxonpath.append( { "id": obkid[43:], "entry": str(self.obkgraph.value( URIRef(obkid), SKOS.prefLabel) ) } )
 			return self.findTaxons(taxonpath, str(self.obkgraph.value( URIRef(obkid), SKOS.broader)) )
-
-
-	def storeResults(self,record,setspec,lom,oaidc):
-		""" retrieve by page_id, if exists, update, else insert """
-		row = self.DB.getRecordByOriginalId(record["original_id"])
-		
-		if row:
-			""" update only if actually new """
-			if getTimestampFromZuluDT(record["publishdate"]) > row["updated"]:
-				self.DB.updateRecord(lom,oaidc,record["original_id"])
-				self.FS.storeRecord("lom",row["identifier"],lom)
-				self.FS.storeRecord("oaidc",row["identifier"],oaidc)
-		else:
-			identifier = self.getNewIdentifier()
-			self.DB.insertRecord(identifier,lom,oaidc,setspec,record["original_id"])
-			self.FS.storeRecord("lom",identifier,lom)
-			self.FS.storeRecord("oaidc",identifier,oaidc)
