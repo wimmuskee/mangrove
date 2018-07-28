@@ -17,6 +17,7 @@ Tests fail for 3.4 and 3.5 (test process goes to sleep in mysql execution).
 - [requests](http://python-requests.org)
 
 ## youtube ##
+- [aniso8601](https://bitbucket.org/nielsenb/aniso8601/)
 - [google-api-python-client](http://code.google.com/p/google-api-python-client/)
 - [socksipy](http://socksipy.sourceforge.net) for httplib2 proxy
 
